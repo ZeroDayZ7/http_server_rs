@@ -8,6 +8,7 @@
     "**/tests": true,
     "LICENSE": true,
     "logs": true,
+    ".env.example": true,
     "README.md": true
     // "**/.env": true
   },
@@ -19,6 +20,7 @@
     "**/tests": true,
     "LICENSE": true,
     "logs": true,
+    ".env.example": true,
     "README.md": true
   },
 

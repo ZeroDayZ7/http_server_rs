@@ -2,22 +2,13 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug HTTP Server",
-      "type": "cppdbg",
+      "name": "Debug Rust Server",
+      "type": "lldb",
       "request": "launch",
       "program": "${workspaceFolder}/target/debug/http_server_rs",
       "args": [],
       "cwd": "${workspaceFolder}",
-      "stopAtEntry": false,
-      "MIMode": "gdb",
-      "setupCommands": [
-        {
-          "description": "Enable pretty-printing for gdb",
-          "text": "-enable-pretty-printing",
-          "ignoreFailures": true
-        }
-      ],
-      "preLaunchTask": "cargo build"
+      "stopOnEntry": false
     }
   ]
 }
