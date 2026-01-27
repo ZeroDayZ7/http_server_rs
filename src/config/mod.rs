@@ -1,4 +1,7 @@
-use config::{Config, Environment};
+// Copyright 2026 ZeroDayZ7
+// Licensed under the Apache License, Version 2.0
+// See LICENSE file for details.
+
 use dotenvy::dotenv;
 
 pub use settings::Settings;

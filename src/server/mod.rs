@@ -1,7 +1,10 @@
+// Copyright 2026 ZeroDayZ7
+// Licensed under the Apache License, Version 2.0
+// See LICENSE file for details.
+
 pub mod http;
 pub mod routes;
 
-// funkcja globalna do inicjalizacji logów
 use tracing_subscriber::EnvFilter;
 
 pub fn init_logging(level: &str) {
@@ -10,5 +13,5 @@ pub fn init_logging(level: &str) {
         .init();
 }
 
-// reexport routera z routes.rs
+
 pub use routes::router;
