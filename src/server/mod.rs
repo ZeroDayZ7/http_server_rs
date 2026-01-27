@@ -4,14 +4,8 @@
 
 pub mod http;
 pub mod routes;
-
-use tracing_subscriber::EnvFilter;
-
-pub fn init_logging(level: &str) {
-    tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::new(level))
-        .init();
-}
-
-
+pub mod logger;
+pub mod rate_limiter;
+pub mod http_logger;
+// Re-export router
 pub use routes::router;

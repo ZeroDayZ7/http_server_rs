@@ -3,3 +3,4 @@
 // See LICENSE file for details.
 
 pub mod health;
+pub mod auth;

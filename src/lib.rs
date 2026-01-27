@@ -9,3 +9,4 @@ pub mod services;
 pub mod repository;
 pub mod errors;
 pub mod utils;
+pub mod config;

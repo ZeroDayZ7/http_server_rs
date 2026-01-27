@@ -3,6 +3,7 @@
 // See LICENSE file for details.
 
 use http_server_rs::{config, server};
+use std::net::SocketAddr;
 
 #[tokio::main]
 async fn main() {
@@ -10,7 +11,7 @@ async fn main() {
         .expect("Failed to load configuration");
 
 
-    server::init_logging(&settings.log.level);
+    server::logger::init_logging(&settings.log.level);
 
     tracing::info!("Starting application on {}:{}", 
         settings.server.host, 
