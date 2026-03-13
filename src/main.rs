@@ -3,29 +3,27 @@
 // See LICENSE file for details.
 
 use http_server_rs::{config, server};
-use std::net::SocketAddr;
+use std::sync::Arc;
 
 #[tokio::main]
 async fn main() {
-    let settings = config::load()
-        .expect("Failed to load configuration");
-
+    let settings = config::load().expect("Failed to load configuration");
 
     server::logger::init_logging(&settings.log.level);
 
-    tracing::info!("Starting application on {}:{}", 
-        settings.server.host, 
+    let limiter = Arc::new(server::rate_limiter::RateLimiter::new());
+
+    tracing::info!(
+        "Starting application on {}:{}",
+        settings.server.host,
         settings.server.port
     );
 
-    let app = server::router();
+    let app = server::router(limiter);
 
-
-    let addr = SocketAddr::from((
-        settings.server.host.parse::<std::net::IpAddr>()
-            .expect("Invalid host IP"),
-        settings.server.port,
-    ));
+    let addr = format!("{}:{}", settings.server.host, settings.server.port)
+        .parse()
+        .expect("Invalid host or port");
 
     server::http::serve(app, addr).await;
 }

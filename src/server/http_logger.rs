@@ -1,27 +1,26 @@
-// Copyright 2026 ZeroDayZ7
-use axum::{extract::Request, middleware::Next, response::Response};
-use std::time::Instant;
-use tracing::info;
+// src/server/http_logger.rs
+use axum::http::{Request, Response};
+use tower_http::trace::TraceLayer;
+use tracing::Span;
+use std::time::Duration;
 
-pub async fn http_logger(req: Request, next: Next) -> Response {
-    let start = Instant::now();
-
-    let ip = req
-        .headers()
-        .get("x-forwarded-for")
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("unknown")
-        .to_string();
-
-    let method = req.method().to_string();
-    let path = req.uri().path().to_string();
-
-    let response = next.run(req).await;
-
-    let status = response.status().as_u16();
-    let latency_ms = start.elapsed().as_millis();
-
-    info!(%ip, %method, %path, status, latency_ms, "HTTP request");
-
-    response
+pub fn http_trace_layer() -> impl tower::Layer<axum::Router> + Clone {
+    TraceLayer::new_for_http()
+        .make_span_with(|request: &Request<axum::body::Body>| {
+            tracing::info_span!(
+                "http-request",
+                method = %request.method(),
+                uri = %request.uri(),
+            )
+        })
+        .on_request(|request: &Request<axum::body::Body>, _span: &Span| {
+            tracing::info!("started {} {}", request.method(), request.uri().path());
+        })
+        .on_response(|response: &Response<axum::body::Body>, latency: Duration, _span: &Span| {
+            tracing::info!(
+                status = %response.status(),
+                latency = ?latency,
+                "finished processing"
+            );
+        })
 }

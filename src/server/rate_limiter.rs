@@ -1,9 +1,6 @@
-// Copyright 2026 ZeroDayZ7
-// Licensed under the Apache License, Version 2.0
-// See LICENSE file for details.
-
+// src/server/rate_limiter.rs
 use axum::{
-    extract::ConnectInfo,
+    extract::{ConnectInfo, State},
     http::StatusCode,
     middleware::Next,
     response::{IntoResponse, Response},
@@ -27,6 +24,8 @@ pub struct RateLimiter {
     pub limits: Arc<Mutex<HashMap<String, HashMap<String, (u32, Instant)>>>>,
 }
 
+pub type SharedLimiter = Arc<RateLimiter>; 
+
 impl RateLimiter {
     pub fn new() -> Self {
         Self {
@@ -43,33 +42,33 @@ impl RateLimiter {
     }
 
     pub async fn middleware(
-        self,
-        group: &'static str,
+        State(limiter_instance): State<SharedLimiter>,
         ConnectInfo(addr): ConnectInfo<SocketAddr>,
         req: Request,
         next: Next,
     ) -> Response {
-        let ip = addr.ip().to_string();
-        let presets = Self::presets();
-        let cfg = presets.get(group).unwrap_or(presets.get("global").unwrap());
+        let ip = addr.ip().to_string(); 
+        let presets = Self::presets(); 
+        
+        let group = req.extensions().get::<&'static str>().copied().unwrap_or("global"); 
+        let cfg = presets.get(group).unwrap_or(presets.get("global").unwrap()); 
 
-        let mut limits = self.limits.lock().await;
-        let endpoint = group.to_string();
+        let mut limits = limiter_instance.limits.lock().await; 
+        let endpoint = group.to_string(); 
         let user_entry = limits.entry(endpoint.clone()).or_default();
-        let counter = user_entry.entry(ip.clone()).or_insert((0, Instant::now()));
+        let counter = user_entry.entry(ip.clone()).or_insert((0, Instant::now())); 
 
         if counter.1.elapsed() > cfg.window {
-            *counter = (0, Instant::now());
+            *counter = (0, Instant::now()); 
         }
 
         if counter.0 >= cfg.max {
-            warn!("Rate limit exceeded: ip={} endpoint={}", ip, endpoint);
+            warn!("Rate limit exceeded: ip={} endpoint={}", ip, endpoint); 
             return (StatusCode::TOO_MANY_REQUESTS, "Too many requests").into_response();
         }
 
         counter.0 += 1;
-        drop(limits);
-
-        next.run(req).await
+        drop(limits); 
+        next.run(req).await 
     }
 }
