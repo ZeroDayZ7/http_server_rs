@@ -9,6 +9,8 @@ pub struct Settings {
     pub server: ServerConfig,
     pub log: LogConfig,
     pub cors: CorsConfig,
+    pub redis: RedisConfig,
+    pub database: DatabaseConfig,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -27,4 +29,22 @@ pub struct CorsConfig {
     pub allowed_origin: String,
     pub allowed_methods: String,
     pub max_age: u64,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct RedisConfig {
+    pub host: String,
+    pub port: u16,
+    pub password: Option<String>,
+    pub db: i32,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct DatabaseConfig {
+    pub host: String,
+    pub port: u16,
+    pub user: Option<String>,
+    pub password: Option<String>,
+    pub name: String,
+    pub pool_size: u32,
 }
