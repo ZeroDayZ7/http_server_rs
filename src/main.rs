@@ -1,8 +1,8 @@
 // Copyright 2026 ZeroDayZ7
 // Licensed under the Apache License, Version 2.0
-// See LICENSE file for details.
 
 use http_server_rs::{config, server};
+use std::net::SocketAddr;
 use std::sync::Arc;
 
 #[tokio::main]
@@ -19,11 +19,10 @@ async fn main() {
         settings.server.port
     );
 
-    let app = server::router(limiter);
+    let app = server::router(limiter, settings.clone());
 
-    let addr = format!("{}:{}", settings.server.host, settings.server.port)
-        .parse()
-        .expect("Invalid host or port");
+    let addr_str = format!("{}:{}", settings.server.host, settings.server.port);
+    let addr: SocketAddr = addr_str.parse().expect("Invalid host or port format");
 
     server::http::serve(app, addr).await;
 }

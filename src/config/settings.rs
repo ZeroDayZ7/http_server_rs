@@ -8,6 +8,7 @@ use serde::Deserialize;
 pub struct Settings {
     pub server: ServerConfig,
     pub log: LogConfig,
+    pub cors: CorsConfig,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -19,4 +20,11 @@ pub struct ServerConfig {
 #[derive(Debug, Deserialize, Clone)]
 pub struct LogConfig {
     pub level: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct CorsConfig {
+    pub allowed_origin: String,
+    pub allowed_methods: String,
+    pub max_age: u64,
 }
