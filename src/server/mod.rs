@@ -3,9 +3,9 @@
 // See LICENSE file for details.
 
 pub mod http;
-pub mod routes;
-pub mod logger;
-pub mod rate_limiter;
 pub mod http_logger;
-// Re-export router
+pub mod logger;
+pub mod middleware;
+pub mod rate_limiter;
+pub mod routes;
 pub use routes::router;
