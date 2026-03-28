@@ -12,10 +12,10 @@ async fn main() {
 
     server::logger::init_logging(&settings.log.level);
 
-    let redis_client = infrastructure::redis::io_redis_client(&settings).await;
+    let redis_service = infrastructure::redis::RedisService::new(&settings).await;
 
     let state = AppState {
-        redis: redis_client,
+        redis: redis_service,
         settings: settings.clone(),
     };
 
