@@ -11,8 +11,7 @@ pub fn router(state: AppState) -> Router {
     let cors = middleware::create_cors_layer(&state.settings);
     let security = middleware::create_security_headers_layer().into_inner();
 
-    // wszystkie limity w jednym miejscu
-    let rate_limits = RateLimitLayers::new(&state.settings);
+    let rate_limits = RateLimitLayers::new(&state.settings, state.redis_rate_limiter.clone());
 
     Router::new()
         .route(

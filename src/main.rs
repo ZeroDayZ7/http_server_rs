@@ -14,9 +14,15 @@ async fn main() {
 
     let redis_service = infrastructure::redis::RedisService::new(&settings).await;
 
+    let redis_arc = Arc::new(redis_service.clone());
+
+    let redis_rate_limiter =
+        infrastructure::redis_rate_limiter::RedisRateLimiter::new(redis_arc).await;
+
     let state = AppState {
         redis: redis_service,
         settings: settings.clone(),
+        redis_rate_limiter,
     };
 
     tracing::info!(
