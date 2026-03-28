@@ -1,36 +1,34 @@
-// Copyright 2026 ZeroDayZ7
-// Licensed under the Apache License, Version 2.0
-// See LICENSE file for details.
-
+use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::EnvFilter;
 use tracing_subscriber::prelude::*;
-use tracing_appender::rolling::RollingFileAppender;
 
-/// Initializes logging for the application.
-/// Logs go both to console and to daily rolling log file.
-/// Level is controlled via argument (e.g., "debug" or "info") or LOG__LEVEL env.
-pub fn init_logging(level: &str) {
-    // Console layer
+pub fn init_logging(level: &str) -> (WorkerGuard, WorkerGuard) {
+    let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(level));
+
+    // Konsola
+    let (non_blocking_stdout, stdout_guard) = tracing_appender::non_blocking(std::io::stdout());
     let console_layer = tracing_subscriber::fmt::layer()
-        .with_writer(std::io::stdout)
+        .with_writer(non_blocking_stdout)
         .with_timer(tracing_subscriber::fmt::time::ChronoLocal::rfc_3339())
+        .with_ansi(true)
         .with_target(false);
 
-    // File layer - daily rolling
-    let file_appender: RollingFileAppender = tracing_appender::rolling::daily("logs", "app.log");
+    // Plik
+    let file_appender = tracing_appender::rolling::daily("logs", "app.log");
+    let (non_blocking_file, file_guard) = tracing_appender::non_blocking(file_appender);
+
     let file_layer = tracing_subscriber::fmt::layer()
-        .with_writer(file_appender.with_max_level(tracing::Level::DEBUG))
+        .json()
+        .with_writer(non_blocking_file)
+        .with_ansi(false)
         .with_timer(tracing_subscriber::fmt::time::ChronoLocal::rfc_3339())
-        .with_target(false);
+        .with_target(true);
 
-    // EnvFilter for dynamic log level
-    let env_filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new(level));
-
-    // Combine layers into subscriber
     tracing_subscriber::registry()
         .with(env_filter)
         .with(console_layer)
         .with(file_layer)
         .init();
+
+    (stdout_guard, file_guard)
 }

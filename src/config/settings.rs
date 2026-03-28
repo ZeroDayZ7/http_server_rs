@@ -18,6 +18,7 @@ pub struct Settings {
 pub struct ServerConfig {
     pub host: String,
     pub port: u16,
+    pub shutdown_timeout: u64,
 }
 
 #[derive(Debug, Deserialize, Clone)]

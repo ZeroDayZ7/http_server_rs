@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 # Web Framework
 axum = { version = "0.8", features = ["macros"] }
-tokio = { version = "1.43", features = ["macros", "rt-multi-thread", "time"] }
+tokio = { version = "1.43", features = ["macros", "rt-multi-thread", "signal", "time"] }
 
 # Redis Client (Fred) - NAPRAWIONE: zmieniony feature na tokio-spawn
 fred = { version = "10.1.0", features = ["serde-json", "enable-rustls", "i-scripts"] }
@@ -26,7 +26,7 @@ tower-http = { version = "0.6", features = ["trace", "cors", "set-header"] }
 
 # Logging & Tracing
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter", "chrono", "json"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "time", "chrono"] }
 tracing-appender = "0.2"
 
 # Utilities

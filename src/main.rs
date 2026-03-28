@@ -5,12 +5,13 @@ use http_server_rs::server::state::AppState;
 use http_server_rs::{config, infrastructure, server};
 use std::net::SocketAddr;
 use std::sync::Arc;
+use tracing::info;
 
 #[tokio::main]
 async fn main() {
     let settings = Arc::new(config::load().expect("Failed to load configuration"));
 
-    server::logger::init_logging(&settings.log.level);
+    let _guards = server::logger::init_logging(&settings.log.level);
 
     let redis_service = infrastructure::redis::RedisService::new(&settings).await;
 
@@ -37,5 +38,7 @@ async fn main() {
         .parse::<SocketAddr>()
         .expect("Invalid host or port format");
 
-    server::http::serve(app, addr).await;
+    server::http::serve(app, addr, settings.server.shutdown_timeout).await;
+
+    info!("Shutdown complete. Goodbye!");
 }
