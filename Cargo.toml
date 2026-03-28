@@ -37,3 +37,7 @@ thiserror = "2.0.18"
 anyhow = "1.0.102"
 mongodb = "3.5.2"
 async-trait = "0.1.89"
+aes-gcm = "0.10.3"
+argon2 = { version = "0.5.3", features = ["std"] }
+rand = "0.10"
+base64 = "0.22.1"

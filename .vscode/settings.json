@@ -2,7 +2,7 @@
   // === Explorer & Search ===
   "files.exclude": {
     // "**/target": true,
-    "**/Cargo.lock": true,
+    // "**/Cargo.lock": true,
     "**/.git": true,
     // "**/.vscode": true,
     "**/tests": true,

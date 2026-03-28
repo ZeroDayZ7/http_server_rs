@@ -3,3 +3,4 @@
 // See LICENSE file for details.
 
 pub mod user;
+pub mod vault;
