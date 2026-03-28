@@ -2,9 +2,8 @@
 // Licensed under the Apache License, Version 2.0
 
 use http_server_rs::server::state::AppState;
-use http_server_rs::{config, server};
+use http_server_rs::{config, infrastructure, server};
 use std::net::SocketAddr;
-use std::sync::Arc;
 
 #[tokio::main]
 async fn main() {
@@ -12,14 +11,11 @@ async fn main() {
 
     server::logger::init_logging(&settings.log.level);
 
-    let redis_client = server::redis::io_redis_client(&settings).await;
-
-    let limiter = Arc::new(server::rate_limiter::RateLimiter::new());
+    let redis_client = infrastructure::redis::io_redis_client(&settings).await;
 
     let state = AppState {
         redis: redis_client,
         settings: settings.clone(),
-        limiter,
     };
 
     tracing::info!(

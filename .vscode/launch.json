@@ -8,7 +8,8 @@
       "program": "${workspaceFolder}/target/debug/http_server_rs",
       "args": [],
       "cwd": "${workspaceFolder}",
-      "stopOnEntry": false
+      "stopOnEntry": false,
+      "preLaunchTask": "cargo build"
     }
   ]
 }
