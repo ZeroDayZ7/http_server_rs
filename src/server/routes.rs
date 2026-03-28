@@ -12,7 +12,7 @@ pub fn router(state: AppState) -> Router {
     let security = middleware::create_security_headers_layer().into_inner();
 
     // wszystkie limity w jednym miejscu
-    let rate_limits = RateLimitLayers::new();
+    let rate_limits = RateLimitLayers::new(&state.settings);
 
     Router::new()
         .route(

@@ -4,10 +4,11 @@
 use http_server_rs::server::state::AppState;
 use http_server_rs::{config, infrastructure, server};
 use std::net::SocketAddr;
+use std::sync::Arc;
 
 #[tokio::main]
 async fn main() {
-    let settings = config::load().expect("Failed to load configuration");
+    let settings = Arc::new(config::load().expect("Failed to load configuration"));
 
     server::logger::init_logging(&settings.log.level);
 
@@ -26,8 +27,9 @@ async fn main() {
 
     let app = server::router(state);
 
-    let addr_str = format!("{}:{}", settings.server.host, settings.server.port);
-    let addr: SocketAddr = addr_str.parse().expect("Invalid host or port format");
+    let addr = format!("{}:{}", settings.server.host, settings.server.port)
+        .parse::<SocketAddr>()
+        .expect("Invalid host or port format");
 
     server::http::serve(app, addr).await;
 }

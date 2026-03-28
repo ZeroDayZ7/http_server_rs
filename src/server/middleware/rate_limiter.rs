@@ -6,6 +6,7 @@ use tower_governor::{
 
 use governor::middleware::StateInformationMiddleware;
 type AxumGovernorLayer = GovernorLayer<SmartIpKeyExtractor, StateInformationMiddleware, Body>;
+use crate::config::Settings;
 
 #[derive(Clone)]
 pub struct RateLimitLayers {
@@ -15,27 +16,27 @@ pub struct RateLimitLayers {
 }
 
 impl RateLimitLayers {
-    pub fn new() -> Self {
+    pub fn new(settings: &Settings) -> Self {
         let global_conf = GovernorConfigBuilder::default()
             .key_extractor(SmartIpKeyExtractor)
-            .per_second(3)
-            .burst_size(5)
+            .per_second(settings.rate_limit.global_per_second)
+            .burst_size(settings.rate_limit.global_burst)
             .use_headers()
             .finish()
             .unwrap();
 
         let health_conf = GovernorConfigBuilder::default()
             .key_extractor(SmartIpKeyExtractor)
-            .per_second(360)
-            .burst_size(3)
+            .per_second(settings.rate_limit.health_per_second)
+            .burst_size(settings.rate_limit.health_burst)
             .use_headers()
             .finish()
             .unwrap();
 
         let auth_conf = GovernorConfigBuilder::default()
             .key_extractor(SmartIpKeyExtractor)
-            .per_second(12)
-            .burst_size(2)
+            .per_second(settings.rate_limit.auth_per_second)
+            .burst_size(settings.rate_limit.auth_burst)
             .use_headers()
             .finish()
             .unwrap();

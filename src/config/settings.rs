@@ -11,6 +11,7 @@ pub struct Settings {
     pub cors: CorsConfig,
     pub redis: RedisConfig,
     pub database: DatabaseConfig,
+    pub rate_limit: RateLimitConfig,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -47,4 +48,16 @@ pub struct DatabaseConfig {
     pub password: Option<String>,
     pub name: String,
     pub pool_size: u32,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct RateLimitConfig {
+    pub global_per_second: u64,
+    pub global_burst: u32,
+
+    pub health_per_second: u64,
+    pub health_burst: u32,
+
+    pub auth_per_second: u64,
+    pub auth_burst: u32,
 }
