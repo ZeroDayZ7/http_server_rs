@@ -13,6 +13,11 @@ pub fn router(state: AppState) -> Router {
 
     let rate_limits = RateLimitLayers::new(&state.settings, state.redis_rate_limiter.clone());
 
+    let redis_mw = axum::middleware::from_fn_with_state(
+        state.clone(),
+        middleware::redis_rate_limit_middleware,
+    );
+
     Router::new()
         .route(
             "/health",
@@ -23,6 +28,7 @@ pub fn router(state: AppState) -> Router {
             post(auth::login).layer(rate_limits.auth.clone()),
         )
         .route_layer(rate_limits.global.clone())
+        .layer(redis_mw)
         .layer(security)
         .layer(cors)
         .layer(middleware::http_trace_layer())
