@@ -1,57 +1,52 @@
 use crate::config::Settings;
+use crate::domain::vault::VaultRepository;
 use crate::infrastructure::mongodb_vault::MongoVaultRepository;
 use crate::infrastructure::redis::RedisService;
 use crate::infrastructure::redis_rate_limiter::RedisRateLimiter;
-
-use crate::repository::user_repo::UserRepository;
-use mongodb::Database;
+use crate::repository::UserRepository;
+use crate::repository::user_repo::MongoUserRepository;
+use crate::services::user_service::UserService;
+use crate::services::vault_service::VaultService;
 use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct AppState {
     pub settings: Arc<Settings>,
-    pub redis_rate_limiter: RedisRateLimiter,
-    pub db: Database,
-    pub user_repo: Arc<UserRepository>,
-    pub db_repo: Arc<MongoVaultRepository>,
+    pub vault_service: Arc<VaultService>,
+    pub user_service: Arc<UserService>,
+    pub redis_rate_limiter: Arc<RedisRateLimiter>,
 }
 
 impl AppState {
     pub async fn new(settings: Arc<Settings>) -> Self {
-        // 1. Init Infrastructure
-        let redis_service = RedisService::new(&settings).await;
-        let redis_arc = Arc::new(redis_service);
-
+        // 1. Inicjalizacja bazy danych (Jeden punkt wejścia)
         let mongo_db = crate::infrastructure::database::init_mongo(&settings).await;
-        let mongo_arc = Arc::new(mongo_db.clone());
+        let db_pool = Arc::new(mongo_db);
 
-        // 2. Init Rate Limiter
-        let redis_rate_limiter = RedisRateLimiter::new(redis_arc).await;
+        // 2. Repozytoria (Wstrzykujemy ten sam db_pool do obu)
+        // Używamy Arc::clone(&db_pool) zamiast db_pool.clone() dla jasności
+        let vault_repo = Arc::new(MongoVaultRepository::new(Arc::clone(&db_pool)));
+        let user_repo = Arc::new(MongoUserRepository::new(Arc::clone(&db_pool)));
 
-        // 3. Init Repositories
-        let user_repo = Arc::new(UserRepository::new(Arc::new(mongo_db.clone())));
-        // let db_repo = Arc::new(MongoVaultRepository::new(mongo_arc.clone()));
+        // 3. Serwisy (Abstrakcyjne - przyjmują traity)
+        // Rzutujemy konkretne repozytoria na dyn Trait + Send + Sync
+        let vault_service = Arc::new(VaultService::new(
+            vault_repo as Arc<dyn VaultRepository + Send + Sync>,
+        ));
 
-        // let db_repo: Arc<dyn VaultRepository> =
-        //     Arc::new(MongoVaultRepository::new(mongo_arc.clone()));
+        let user_service = Arc::new(UserService::new(
+            user_repo as Arc<dyn UserRepository + Send + Sync>,
+        ));
 
-        // let db_repo =
-        //     Arc::new(MongoVaultRepository::new(mongo_arc.clone())) as Arc<dyn VaultRepository>;
+        // 4. Infrastruktura Redis
+        let redis_service = Arc::new(RedisService::new(&settings).await);
+        let redis_rate_limiter = Arc::new(RedisRateLimiter::new(redis_service).await);
 
-        // let db_repo: Arc<dyn VaultRepository> =
-        //     Arc::new(MongoVaultRepository::new(mongo_arc.clone()));
-
-        // let repo = MongoVaultRepository::new(mongo_arc.clone());
-        // let db_repo = Arc::new(repo) as Arc<dyn VaultRepository>;
-
-        let repo = MongoVaultRepository::new(mongo_arc.clone());
-        let db_repo = Arc::new(repo);
         Self {
             settings,
+            vault_service,
+            user_service,
             redis_rate_limiter,
-            db: mongo_db,
-            user_repo,
-            db_repo,
         }
     }
 }

@@ -13,12 +13,12 @@ pub struct RateLimitLayers {
     pub global: AxumGovernorLayer,
     pub health: AxumGovernorLayer,
     pub auth: AxumGovernorLayer,
-    pub redis_limiter: RedisRateLimiter,
+    pub redis_limiter: Arc<RedisRateLimiter>,
 }
 
 impl RateLimitLayers {
     // Dodajemy redis_limiter do argumentów funkcji new
-    pub fn new(settings: &Settings, redis_limiter: RedisRateLimiter) -> Self {
+    pub fn new(settings: &Settings, limiter: Arc<RedisRateLimiter>) -> Self {
         let global_conf = GovernorConfigBuilder::default()
             .key_extractor(SmartIpKeyExtractor)
             .per_second(settings.rate_limit.global_per_second)
@@ -47,7 +47,7 @@ impl RateLimitLayers {
             global: GovernorLayer::new(Arc::new(global_conf)),
             health: GovernorLayer::new(Arc::new(health_conf)),
             auth: GovernorLayer::new(Arc::new(auth_conf)),
-            redis_limiter,
+            redis_limiter: limiter,
         }
     }
 }

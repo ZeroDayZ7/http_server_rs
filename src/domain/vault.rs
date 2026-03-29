@@ -5,9 +5,9 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EncryptedCV {
     pub id: String,
-    pub data: String,  // Base64
-    pub salt: String,  // Base64
-    pub nonce: String, // Base64
+    pub data: String,
+    pub salt: String,
+    pub nonce: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

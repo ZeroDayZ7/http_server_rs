@@ -1,7 +1,6 @@
 use crate::domain::vault::DecryptedCV;
 use crate::errors::AppResult;
 use crate::server::state::AppState;
-use crate::services::vault_service::VaultService;
 use axum::{Json, extract::State};
 use serde::Deserialize;
 
@@ -15,9 +14,9 @@ pub async fn unlock_cv(
     State(state): State<AppState>,
     Json(payload): Json<UnlockRequest>,
 ) -> AppResult<Json<DecryptedCV>> {
-    let service = VaultService::new(state.db_repo.clone());
-
-    let cv = service
+    // Używamy gotowego serwisu ze stanu aplikacji
+    let cv = state
+        .vault_service
         .unlock_cv(&payload.cv_id, &payload.access_key)
         .await?;
 
