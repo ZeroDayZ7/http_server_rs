@@ -1,5 +1,5 @@
 use crate::config::Settings;
-
+use crate::errors::{AppError, AppResult};
 use fred::prelude::*;
 use std::time::Duration;
 
@@ -9,26 +9,26 @@ pub struct RedisService {
 }
 
 impl RedisService {
-    pub async fn new(settings: &Settings) -> Self {
+    pub async fn new(settings: &Settings) -> AppResult<Self> {
+        let db_index: u8 = settings.redis.db.try_into().map_err(|_| {
+            AppError::ValidationError("Redis DB index must be between 0-255".to_string())
+        })?;
+
         let config = fred::prelude::Config {
             server: ServerConfig::Centralized {
                 server: Server::new(&settings.redis.host, settings.redis.port),
             },
             password: settings.redis.password.clone(),
-            database: Some(
-                settings
-                    .redis
-                    .db
-                    .try_into()
-                    .expect("Redis DB index must be between 0-255"),
-            ),
+            database: Some(db_index),
             ..Default::default()
         };
 
         let client = Client::new(config, None, None, None);
 
+        // Rozpoczynamy połączenie w tle
         client.connect();
 
+        // Czekamy na połączenie z timeoutem (zamiast panic!)
         match tokio::time::timeout(Duration::from_secs(5), client.wait_for_connect()).await {
             Ok(Ok(_)) => {
                 tracing::info!(
@@ -37,15 +37,22 @@ impl RedisService {
                     settings.redis.port
                 );
             }
-            _ => {
-                panic!(
-                    "❌ Krytyczny błąd: Nie udało się połączyć z Redisem na {}:{}",
-                    settings.redis.host, settings.redis.port
-                );
+            Ok(Err(e)) => {
+                return Err(AppError::Internal(anyhow::anyhow!(
+                    "Błąd połączenia z Redis: {}",
+                    e
+                )));
+            }
+            Err(_) => {
+                return Err(AppError::Internal(anyhow::anyhow!(
+                    "Timeout: Nie udało się połączyć z Redisem na {}:{}",
+                    settings.redis.host,
+                    settings.redis.port
+                )));
             }
         }
 
-        Self { client }
+        Ok(Self { client })
     }
 
     pub fn client(&self) -> &Client {
@@ -68,12 +75,10 @@ impl RedisService {
             )
             .await
     }
-
     pub async fn get_auth_token(
         &self,
         user_id: &str,
     ) -> Result<Option<String>, fred::error::Error> {
-        // Updated type
         self.client.get(user_id).await
     }
 }

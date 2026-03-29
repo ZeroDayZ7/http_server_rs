@@ -49,6 +49,7 @@ pub struct DatabaseConfig {
     pub password: Option<String>,
     pub name: String,
     pub pool_size: u32,
+    pub auth_source: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
