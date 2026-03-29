@@ -1,101 +1,76 @@
 # http_server_rs
 
-A lightweight and extendable Rust HTTP server demonstrating **modular architecture**, **async support with Axum**, **structured configuration**, and **logging with tracing**.
+**Production-style Rust backend** built with **Axum + Tokio**, designed as a clean, modular foundation for real-world APIs.
+
+This project demonstrates **enterprise-grade architecture** with strong separation of concerns (domain / services / infrastructure), structured configuration, observability, security middleware, and scalable rate limiting.
 
 ---
 
-## Features
+## Highlights
 
-- Async HTTP server built with [Axum](https://docs.rs/axum)
-- Enterprise-style project structure
-- Typed configuration via `config` and `.env` support
-- Structured logging using `tracing` and `tracing-subscriber`
-- Healthcheck endpoint (`GET /health`)
-- Ready for extension: services, handlers, domain, repository layers
+- **Async HTTP API** powered by **Axum (0.8)** + **Tokio**
+- **Clean architecture approach**
+  - `domain` defines core contracts (ports)
+  - `services` implement business logic
+  - `infrastructure` provides MongoDB / Redis adapters
+- **MongoDB integration** with repository layer (User + Vault)
+- **Redis integration** (Fred client) for caching and distributed rate limiting
+- **Two-level rate limiting**
+  - In-memory governor-based limits (`tower-governor`)
+  - Redis-backed limiter using **Lua script + EVALSHA optimization**
+- **Security middleware**
+  - CSP, XSS protection, nosniff, frame deny
+- **CORS configuration** driven by typed settings
+- **Structured logging**
+  - console logs + JSON logs to file
+  - `tracing` spans + request tracing middleware
+- **Graceful shutdown** with configurable timeout
+
+---
+
+## API Endpoints
+
+- `GET /health` — healthcheck
+- `POST /auth/login` — authentication entrypoint (stub)
+- `POST /vault/unlock` — decrypts stored encrypted payload and returns decrypted CV
+
+---
+
+## Security / Crypto
+
+Vault data is encrypted using:
+
+- **AES-256-GCM**
+- key derivation via **Argon2**
+- Base64 encoding for payload storage (`ciphertext`, `salt`, `nonce`)
 
 ---
 
 ## Project Structure
 
-```
-
-src/
-├── main.rs             # Entry point (binary)
-├── lib.rs              # Library for core modules
-├── config/             # Configuration loading
-├── server/             # HTTP server and routing
-├── handlers/           # Request handlers
-├── domain/             # Business logic
-├── services/           # Use-case orchestration
-├── repository/         # Data access
-├── errors/             # Application errors
-└── utils/              # Helpers
-
-tests/                  # Integration tests
-
-```
-
----
-
-## Getting Started
-
-### Prerequisites
-
-- Rust 1.76+ and Cargo
-- Optional: `curl` to test endpoints
-
-### Clone and Run
-
 ```bash
-git clone https://github.com/ZeroDayZ7/http_server_rs.git
-cd http_server_rs
-cargo run
+src/
+├── config/          # typed settings + env support
+├── domain/          # entities + repository ports + crypto contracts
+├── services/        # use-cases (user + vault)
+├── infrastructure/  # MongoDB + Redis adapters, Lua scripts, serialization
+├── server/          # router, middleware, extractors, graceful shutdown
+├── handlers/        # HTTP handlers (auth, vault, health)
+└── errors/          # centralized AppError + API error mapping
 ````
 
-The server will start at the host and port defined in `.env` (default `127.0.0.1:8080`).
-
-### Test Healthcheck
-
-```bash
-curl http://127.0.0.1:8080/health
-```
-
-Expected response:
-
-```json
-{"status":"ok"}
-```
-
 ---
 
-## Configuration
+## Why this project matters
 
-Use `.env` file for local configuration:
-
-```env
-SERVER__HOST=127.0.0.1
-SERVER__PORT=8080
-LOG__LEVEL=debug
-```
-
-Environment variables override defaults.
+* strong boundaries between layers,
+* production logging,
+* defensive error handling,
+* rate limiting that works both locally and in distributed environments,
+* crypto-ready domain logic.
 
 ---
-
-## Logging
-
-* Uses `tracing` and `tracing-subscriber`
-* Log level can be set via `LOG__LEVEL` in `.env` (e.g., `debug`, `info`)
-
----
-
-## Next Steps
-
-* Add database support
-* Implement AppError handling and HTTP error mapping
-* Graceful shutdown handling
-* More endpoints and services
 
 ## License
 
-This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.
+Apache-2.0

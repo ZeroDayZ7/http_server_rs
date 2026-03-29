@@ -8,8 +8,8 @@
     "**/tests": true,
     "LICENSE": true,
     "logs": true,
-    ".env.example": true,
-    "README.md": true
+    ".env.example": true
+    // "README.md": true
     // "**/.env": true
   },
   "search.exclude": {
