@@ -1,13 +1,13 @@
 {
   // === Explorer & Search ===
   "files.exclude": {
-    // "**/target": true,
-    // "**/Cargo.lock": true,
+    "**/target": true,
+    "**/Cargo.lock": true,
     "**/.git": true,
     // "**/.vscode": true,
     "**/tests": true,
     "LICENSE": true,
-    // "logs": true,
+    "logs": true,
     ".env.example": true,
     "README.md": true
     // "**/.env": true
@@ -21,7 +21,8 @@
     "LICENSE": true,
     "logs": true,
     ".env.example": true,
-    "README.md": true
+    "README.md": true,
+    "combined.txt": true
   },
 
   // === Rust / Cargo ===

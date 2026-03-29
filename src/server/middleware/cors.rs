@@ -1,4 +1,4 @@
-use crate::config::Settings;
+use crate::config::{HttpMethod, Settings};
 use axum::http::{HeaderValue, Method};
 use std::time::Duration;
 use tower_http::cors::{Any, CorsLayer};
@@ -10,12 +10,19 @@ pub fn create_cors_layer(settings: &Settings) -> CorsLayer {
         .parse::<HeaderValue>()
         .expect("Invalid CORS origin");
 
-    let methods = settings
+    let methods: Vec<Method> = settings
         .cors
         .allowed_methods
-        .split(',')
-        .map(|s| s.trim().parse::<Method>().expect("Invalid HTTP method"))
-        .collect::<Vec<Method>>();
+        .iter()
+        .map(|m| match m {
+            HttpMethod::Get => Method::GET,
+            HttpMethod::Post => Method::POST,
+            HttpMethod::Put => Method::PUT,
+            HttpMethod::Delete => Method::DELETE,
+            HttpMethod::Patch => Method::PATCH,
+            HttpMethod::Options => Method::OPTIONS,
+        })
+        .collect();
 
     CorsLayer::new()
         .allow_origin(origin)
