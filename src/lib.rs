@@ -8,7 +8,6 @@ pub mod domain;
 pub mod errors;
 pub mod handlers;
 pub mod infrastructure;
-pub mod repository;
 pub mod server;
 pub mod services;
 pub mod utils;

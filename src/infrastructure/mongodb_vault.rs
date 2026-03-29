@@ -1,4 +1,5 @@
-use crate::domain::vault::{EncryptedCV, VaultRepository};
+use crate::domain::VaultRepository;
+use crate::domain::vault::EncryptedCV;
 use crate::errors::AppResult;
 use async_trait::async_trait;
 use mongodb::{Database, bson::doc};

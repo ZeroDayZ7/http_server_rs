@@ -1,7 +1,9 @@
-use crate::domain::vault::{DecryptedCV, EncryptedCV, VaultRepository};
+use crate::domain::VaultRepository;
+use crate::domain::vault::{DecryptedCV, EncryptedCV};
 use crate::errors::{AppError, AppResult};
 use crate::utils::crypto::CryptoUtils;
 use std::sync::Arc;
+use tracing::{error, info, instrument};
 
 pub struct VaultService {
     // Używamy Arc, aby móc współdzielić repozytorium między wątkami (wymagane przez Axum)
@@ -13,14 +15,16 @@ impl VaultService {
         Self { repo }
     }
 
-    /// Główna metoda odblokowująca dane CV
+    #[instrument(
+        skip(self, access_key),
+        fields(cv_id = %id)
+    )]
     pub async fn unlock_cv(&self, id: &str, access_key: &str) -> AppResult<DecryptedCV> {
-        // 1. Pobranie zaszyfrowanych danych z repozytorium
-        let encrypted = self
-            .repo
-            .get_cv_by_id(id)
-            .await?
-            .ok_or_else(|| AppError::NotFound(format!("CV o ID {} nie istnieje", id)))?;
+        info!("Pobieranie zaszyfrowanego CV z bazy");
+        let encrypted = self.repo.get_cv_by_id(id).await?.ok_or_else(|| {
+            error!("Nie znaleziono dokumentu o podanym ID");
+            AppError::NotFound(format!("CV o ID {} nie istnieje", id))
+        })?;
 
         // 2. Deszyfracja przy użyciu logiki krypto
         let decrypted_json = self.decrypt_logic(&encrypted, access_key)?;
@@ -29,14 +33,12 @@ impl VaultService {
         let cv: DecryptedCV = serde_json::from_str(&decrypted_json).map_err(|e| {
             AppError::Internal(anyhow::anyhow!("Błąd formatu danych po deszyfracji: {}", e))
         })?;
-
+        info!("CV pomyślnie odblokowane");
         Ok(cv)
     }
 
-    /// Logika łącząca dane z bazy z narzędziami krypto
+    #[instrument(skip(self, key, enc))]
     fn decrypt_logic(&self, enc: &EncryptedCV, key: &str) -> AppResult<String> {
-        // Poprawione mapowanie pól zgodnie z Twoim modelem:
-        // enc.data zamiast enc.encrypted_data
         CryptoUtils::decrypt(
             &enc.data,  // Ciphertext z bazy (Base64)
             key,        // Hasło przekazane od użytkownika

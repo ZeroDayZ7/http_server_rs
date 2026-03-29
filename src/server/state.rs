@@ -1,13 +1,14 @@
+use std::sync::Arc;
+
 use crate::config::Settings;
-use crate::domain::vault::VaultRepository;
-use crate::infrastructure::mongodb_vault::MongoVaultRepository;
+// Importujemy traity z domeny
+use crate::domain::{UserRepository, VaultRepository};
+// Importujemy konkretne implementacje z infrastruktury (używając Twoich re-eksportów)
 use crate::infrastructure::redis::RedisService;
 use crate::infrastructure::redis_rate_limiter::RedisRateLimiter;
-use crate::repository::UserRepository;
-use crate::repository::user_repo::MongoUserRepository;
+use crate::infrastructure::{MongoUserRepository, MongoVaultRepository};
 use crate::services::user_service::UserService;
 use crate::services::vault_service::VaultService;
-use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -19,26 +20,20 @@ pub struct AppState {
 
 impl AppState {
     pub async fn new(settings: Arc<Settings>) -> Self {
-        // 1. Inicjalizacja bazy danych (Jeden punkt wejścia)
+        // 1. DB
         let mongo_db = crate::infrastructure::database::init_mongo(&settings).await;
         let db_pool = Arc::new(mongo_db);
 
-        // 2. Repozytoria (Wstrzykujemy ten sam db_pool do obu)
-        // Używamy Arc::clone(&db_pool) zamiast db_pool.clone() dla jasności
+        // 2. Repozytoria
         let vault_repo = Arc::new(MongoVaultRepository::new(Arc::clone(&db_pool)));
         let user_repo = Arc::new(MongoUserRepository::new(Arc::clone(&db_pool)));
 
-        // 3. Serwisy (Abstrakcyjne - przyjmują traity)
-        // Rzutujemy konkretne repozytoria na dyn Trait + Send + Sync
-        let vault_service = Arc::new(VaultService::new(
-            vault_repo as Arc<dyn VaultRepository + Send + Sync>,
-        ));
+        // 3. Serwisy
+        let vault_service = Arc::new(VaultService::new(vault_repo as Arc<dyn VaultRepository>));
 
-        let user_service = Arc::new(UserService::new(
-            user_repo as Arc<dyn UserRepository + Send + Sync>,
-        ));
+        let user_service = Arc::new(UserService::new(user_repo as Arc<dyn UserRepository>));
 
-        // 4. Infrastruktura Redis
+        // 4. Redis
         let redis_service = Arc::new(RedisService::new(&settings).await);
         let redis_rate_limiter = Arc::new(RedisRateLimiter::new(redis_service).await);
 

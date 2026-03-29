@@ -1,4 +1,4 @@
-use super::UserRepository;
+use crate::domain::UserRepository;
 use crate::domain::user::User;
 use crate::errors::AppResult;
 use async_trait::async_trait;
