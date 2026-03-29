@@ -1,3 +1,4 @@
+// src/domain/vault.rs
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]

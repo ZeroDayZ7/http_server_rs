@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0
 // See LICENSE file for details.
 
+pub mod crypto;
 pub mod user;
 pub mod vault;
 
