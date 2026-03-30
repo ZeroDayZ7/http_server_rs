@@ -22,10 +22,10 @@ pub enum AppError {
     CryptoError(String),
 
     #[error("Błąd bazy danych")]
-    DatabaseError(#[source] mongodb::error::Error),
+    DatabaseError(#[from] mongodb::error::Error),
 
     #[error("Błąd usługi Redis")]
-    RedisError(#[source] fred::error::Error),
+    RedisError(#[from] fred::error::Error),
 
     #[error("Błąd timeout")]
     TimeoutError,
@@ -42,8 +42,8 @@ pub enum AppError {
     #[error("Błąd zewnętrznej usługi (HTTP): {0}")]
     ExternalServiceError(String),
 
-    #[error("Wystąpił nieoczekiwany błąd serwera")]
-    Internal(#[from] anyhow::Error),
+    #[error("Wystąpił nieoczekiwany błąd serwera: {0}")]
+    Internal(String), // Zmienione z anyhow::Error na String
 }
 
 #[derive(Serialize)]
@@ -83,7 +83,6 @@ impl IntoResponse for AppError {
             Self::NotFound(_) => StatusCode::NOT_FOUND,
             Self::ValidationError(_) => StatusCode::BAD_REQUEST,
             Self::CryptoError(_) => StatusCode::UNPROCESSABLE_ENTITY,
-
             Self::DatabaseError(err) => {
                 tracing::error!(target: "infra::db", %err, "MongoDB Error");
                 StatusCode::INTERNAL_SERVER_ERROR
@@ -125,22 +124,12 @@ impl IntoResponse for AppError {
                 | Self::ConfigError(d)
                 | Self::RuntimeError(d)
                 | Self::ExternalServiceError(d) => Some(d.clone()),
+                Self::Internal(d) => Some(d.clone()),
                 _ => None,
             },
         });
 
         (status, body).into_response()
-    }
-}
-impl From<mongodb::error::Error> for AppError {
-    fn from(err: mongodb::error::Error) -> Self {
-        Self::DatabaseError(err)
-    }
-}
-
-impl From<fred::error::Error> for AppError {
-    fn from(err: fred::error::Error) -> Self {
-        Self::RedisError(err)
     }
 }
 

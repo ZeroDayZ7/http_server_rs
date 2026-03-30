@@ -1,10 +1,10 @@
+// Main entry point for the HTTP server application.
 use http_server_rs::server::state::AppState;
 use http_server_rs::{config, server};
 
+use anyhow::{Context, anyhow};
 use std::net::SocketAddr;
 use std::sync::Arc;
-
-use anyhow::Context;
 use tracing::{error, info};
 
 #[tokio::main]
@@ -33,14 +33,9 @@ async fn run() -> anyhow::Result<()> {
     // -------------------------
     // 3. BUILD STATE (fail-fast)
     // -------------------------
-    let state = match AppState::new(settings.clone()).await {
-        Ok(s) => s,
-        Err(e) => {
-            eprintln!("❌ KRYTYCZNY BŁĄD DB/REDIS: {:?}", e);
-            error!(error = ?e, "❌ Krytyczny błąd inicjalizacji AppState");
-            std::process::exit(1);
-        }
-    };
+    let state = AppState::new(settings.clone())
+        .await
+        .map_err(|e| anyhow::anyhow!("Krytyczny błąd inicjalizacji AppState (DB/REDIS): {}", e))?;
 
     info!("🧠 Application state initialized");
 
