@@ -1,12 +1,13 @@
 use crate::config::Settings;
+use crate::domain::ports::decoder::Decoder;
 use crate::domain::{UserRepository, VaultRepository};
 use crate::errors::AppResult;
 use crate::infrastructure::crypto::aes_service::AesCryptoService;
 use crate::infrastructure::redis::client::RedisManager;
 use crate::infrastructure::redis::rate_limiter::RedisRateLimiter;
+use crate::infrastructure::serialization::JsonDecoder;
 use crate::infrastructure::{MongoUserRepository, MongoVaultRepository};
 use crate::services::user_service::UserService;
-use crate::services::vault::vault_decoder::JsonVaultDecoder;
 use crate::services::vault::vault_service::VaultService;
 use std::sync::Arc;
 
@@ -27,12 +28,12 @@ impl AppState {
         let user_repo = Arc::new(MongoUserRepository::new(Arc::clone(&db_pool)));
 
         let crypto_service = Arc::new(AesCryptoService);
-        let decoder = Arc::new(JsonVaultDecoder);
+        let decoder = Arc::new(JsonDecoder);
 
         let vault_service = Arc::new(VaultService::new(
             vault_repo as Arc<dyn VaultRepository>,
             crypto_service,
-            decoder,
+            decoder as Arc<dyn Decoder<crate::domain::vault::DecryptedCV> + Send + Sync>,
         ));
 
         let user_service = Arc::new(UserService::new(user_repo as Arc<dyn UserRepository>));

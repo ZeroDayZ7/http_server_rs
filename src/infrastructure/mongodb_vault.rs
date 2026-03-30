@@ -23,12 +23,8 @@ impl MongoVaultRepository {
 impl VaultRepository for MongoVaultRepository {
     async fn get_cv_by_id(&self, id: &str) -> AppResult<Option<EncryptedCV>> {
         let collection = self.db.collection::<EncryptedCV>(&self.collection_name);
-
         let filter = doc! { "id": id };
-        let result = collection
-            .find_one(filter)
-            .await
-            .map_err(|e| crate::errors::AppError::Internal(e.into()))?;
+        let result = collection.find_one(filter).await?;
 
         Ok(result)
     }

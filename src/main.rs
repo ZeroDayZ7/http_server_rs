@@ -25,7 +25,8 @@ async fn run() -> anyhow::Result<()> {
     // -------------------------
     // 2. LOGGING
     // -------------------------
-    let _guards = server::logger::init_logging(&settings.log.level);
+
+    let _guards = server::logger::init_logging(settings.log.level);
 
     info!("⚙️ Configuration loaded");
 

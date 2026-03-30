@@ -14,6 +14,8 @@ mod server;
 mod settings;
 
 pub use cors::HttpMethod;
+pub use log::LogConfig;
+pub use log::LogLevel;
 pub use settings::Settings;
 
 pub fn load() -> Result<Settings, config::ConfigError> {

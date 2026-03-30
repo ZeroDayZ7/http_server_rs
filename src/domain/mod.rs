@@ -4,6 +4,7 @@
 
 pub mod auth;
 pub mod crypto;
+pub mod ports;
 pub mod rate_limiter;
 pub mod user;
 pub mod vault;

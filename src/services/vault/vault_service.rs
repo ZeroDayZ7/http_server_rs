@@ -4,22 +4,23 @@ use crate::{
     domain::{
         VaultRepository,
         crypto::{CryptoService, EncryptedPayload},
+        ports::decoder::Decoder,
         vault::DecryptedCV,
     },
     errors::{AppError, AppResult},
-    services::vault::vault_decoder::VaultDecoder,
 };
+
 pub struct VaultService {
     repo: Arc<dyn VaultRepository>,
     crypto: Arc<dyn CryptoService>,
-    decoder: Arc<dyn VaultDecoder<DecryptedCV>>,
+    decoder: Arc<dyn Decoder<DecryptedCV> + Send + Sync>,
 }
 
 impl VaultService {
     pub fn new(
         repo: Arc<dyn VaultRepository>,
         crypto: Arc<dyn CryptoService>,
-        decoder: Arc<dyn VaultDecoder<DecryptedCV>>,
+        decoder: Arc<dyn Decoder<DecryptedCV> + Send + Sync>,
     ) -> Self {
         Self {
             repo,
