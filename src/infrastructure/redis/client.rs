@@ -5,7 +5,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 pub struct RedisManager {
-    client: Client, // Pole jest prywatne
+    client: Client,
 }
 
 impl RedisManager {
@@ -35,41 +35,36 @@ impl RedisManager {
                 );
                 Ok(Arc::new(Self { client }))
             }
-            Ok(Err(e)) => Err(AppError::Internal(anyhow::anyhow!("Błąd Redisa: {}", e))),
+            Ok(Err(e)) => Err(Self::redis_error(e)),
             Err(_) => Err(AppError::Internal(anyhow::anyhow!(
                 "Timeout połączenia z Redis"
             ))),
         }
     }
 
-    pub async fn set_ex(&self, key: &str, value: &str, ttl_sec: u64) -> AppResult<()> {
+    pub async fn set_ex(&self, key: &str, value: &str, ttl: u64) -> AppResult<()> {
         self.client
-            .set::<(), _, _>(
-                key,
-                value,
-                Some(Expiration::EX(ttl_sec as i64)),
-                None,
-                false,
-            )
+            .set::<(), _, _>(key, value, Some(Expiration::EX(ttl as i64)), None, false)
             .await
-            .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis SET error: {}", e)))
+            .map_err(Self::redis_error)
     }
 
     pub async fn get(&self, key: &str) -> AppResult<Option<String>> {
-        self.client
-            .get(key)
-            .await
-            .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis GET error: {}", e)))
+        self.client.get(key).await.map_err(Self::redis_error)
     }
 
     pub async fn del(&self, key: &str) -> AppResult<()> {
         self.client
             .del::<(), _>(key)
             .await
-            .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis DEL error: {}", e)))
+            .map_err(Self::redis_error)
     }
 
     pub(crate) fn client(&self) -> &Client {
         &self.client
+    }
+
+    fn redis_error<E: std::fmt::Display>(e: E) -> AppError {
+        AppError::Internal(anyhow::anyhow!("Redis error: {}", e))
     }
 }

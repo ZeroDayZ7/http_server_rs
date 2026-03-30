@@ -96,7 +96,6 @@ impl IntoResponse for AppError {
     }
 }
 
-// Mapowania automatyczne (To usuwa potrzebę .map_err(|e| AppError::Internal(e.into())) w wielu miejscach)
 impl From<mongodb::error::Error> for AppError {
     fn from(err: mongodb::error::Error) -> Self {
         Self::DatabaseError(err)
