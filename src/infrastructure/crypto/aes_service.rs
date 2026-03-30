@@ -64,18 +64,30 @@ impl CryptoService for AesCryptoService {
     }
 
     fn decrypt(&self, payload: &EncryptedPayload, password: &str) -> AppResult<Vec<u8>> {
-        // ZMIANA: Nie używamy STANDARD.decode, bo payload.salt i reszta to już Vec<u8>
+        if payload.salt.len() != 16 {
+            return Err(AppError::CryptoError(
+                "Nieprawidłowa długość soli (wymagane 16 bajtów)".into(),
+            ));
+        }
+
+        if payload.nonce.len() != 12 {
+            return Err(AppError::CryptoError(
+                "Nieprawidłowa długość nonce (wymagane 12 bajtów)".into(),
+            ));
+        }
+
         let key = self.derive_key(password, &payload.salt)?;
 
         let cipher = Aes256Gcm::new_from_slice(&key)
-            .map_err(|e| AppError::CryptoError(format!("Cipher init error: {}", e)))?;
+            .map_err(|e| AppError::CryptoError(format!("Błąd inicjalizacji szyfru: {}", e)))?;
 
-        // Używamy danych bezpośrednio z payloadu
         let nonce = Nonce::from_slice(&payload.nonce);
 
         let decrypted = cipher
             .decrypt(nonce, payload.ciphertext.as_ref())
-            .map_err(|_| AppError::CryptoError("Invalid key or corrupted data".into()))?;
+            .map_err(|_| {
+                AppError::CryptoError("Błędny klucz lub uszkodzone dane (MAC mismatch)".into())
+            })?;
 
         Ok(decrypted)
     }
