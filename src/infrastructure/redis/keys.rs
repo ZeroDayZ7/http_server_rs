@@ -1,4 +1,4 @@
-// src/infrastructure/redis/keys.rs
+
 pub struct RedisKeys;
 
 impl RedisKeys {

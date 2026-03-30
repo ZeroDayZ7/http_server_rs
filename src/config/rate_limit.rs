@@ -32,9 +32,9 @@ impl RateLimitTier {
     /// Wyciąga konkretne wartości z Twojej struktury configu
     pub fn get_limits(&self, config: &RateLimitConfig) -> (u64, u64) {
         match self {
-            Self::Global => (config.global_burst as u64, 1),
-            Self::Auth => (config.auth_burst as u64, 1),
-            Self::Health => (config.health_burst as u64, 1),
+            Self::Global => (config.global_burst as u64, config.global_per_second),
+            Self::Auth => (config.auth_burst as u64, config.auth_per_second),
+            Self::Health => (config.health_burst as u64, config.health_per_second),
         }
     }
 }

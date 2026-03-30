@@ -1,3 +1,4 @@
+use crate::domain::auth::models::{SessionToken, SessionTtl, UserId};
 use crate::domain::auth::repository::AuthRepository;
 use crate::errors::AppResult;
 use crate::infrastructure::redis::client::RedisManager;
@@ -17,18 +18,29 @@ impl RedisAuthRepository {
 
 #[async_trait]
 impl AuthRepository for RedisAuthRepository {
-    async fn store_session(&self, user_id: &str, token: &str, ttl_sec: u64) -> AppResult<()> {
-        let key = RedisKeys::session(token);
-        self.redis.set_ex(&key, user_id, ttl_sec).await
+    async fn store_session(
+        &self,
+        user_id: &UserId,
+        token: &SessionToken,
+        ttl: SessionTtl,
+    ) -> AppResult<()> {
+        let key = RedisKeys::session(token.as_str());
+
+        self.redis
+            .set_ex(&key, &user_id.to_string(), ttl.as_u64())
+            .await
     }
 
-    async fn get_session(&self, token: &str) -> AppResult<Option<String>> {
-        let key = RedisKeys::session(token);
-        self.redis.get(&key).await
+    async fn get_session(&self, user_id: &UserId) -> AppResult<Option<SessionToken>> {
+        let key = RedisKeys::session(&user_id.to_string());
+
+        let result: Option<String> = self.redis.get(&key).await?;
+
+        result.map(|t| SessionToken::new(t)).transpose()
     }
 
-    async fn delete_session(&self, token: &str) -> AppResult<()> {
-        let key = RedisKeys::session(token);
+    async fn delete_session(&self, user_id: &UserId) -> AppResult<()> {
+        let key = RedisKeys::session(&user_id.to_string());
         self.redis.del(&key).await
     }
 }

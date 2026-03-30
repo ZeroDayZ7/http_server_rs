@@ -9,7 +9,6 @@ pub struct RedisManager {
 
 impl RedisManager {
     pub async fn new(config: &RedisConfig) -> AppResult<Self> {
-        // Zmieniono: settings.redis.db -> config.db
         let db_index: u8 = config.db.try_into().map_err(|_| {
             AppError::ValidationError(
                 "Index bazy danych Redis musi mieścić się w zakresie 0-255".into(),
@@ -20,7 +19,6 @@ impl RedisManager {
 
         let redis_config = Config {
             server: ServerConfig::Centralized {
-                // Zmieniono: settings.redis -> config
                 server: Server::new(&config.host, config.port),
             },
             password: config.password.clone(),
