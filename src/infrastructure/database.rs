@@ -1,4 +1,3 @@
-// src/infrastructure/mongodb.rs
 use crate::config::Settings;
 use crate::errors::{AppError, AppResult};
 use mongodb::{
@@ -33,11 +32,16 @@ pub async fn init_mongo(settings: &Settings) -> AppResult<Database> {
         .await
         .map_err(|e| AppError::ValidationError(format!("Błędny format URI MongoDB: {}", e)))?;
 
+    // --- Senior Refactor: Konfiguracja Puli Połączeń ---
     client_options.app_name = Some("http_server_rs".to_string());
+    client_options.max_pool_size = Some(db_set.pool_size);
+    client_options.min_pool_size = Some(1); // Utrzymuj przynajmniej jedno połączenie
 
+    // Timeouts
     client_options.connect_timeout = Some(Duration::from_secs(5));
     client_options.server_selection_timeout = Some(Duration::from_secs(5));
 
+    // Stable API
     client_options.server_api = Some(ServerApi::builder().version(ServerApiVersion::V1).build());
 
     let client = Client::with_options(client_options).map_err(|e| {
@@ -48,19 +52,21 @@ pub async fn init_mongo(settings: &Settings) -> AppResult<Database> {
     })?;
 
     client
-        .database("admin")
+        .database(&db_set.name)
         .run_command(mongodb::bson::doc! {"ping": 1})
         .await
         .map_err(|e| {
             AppError::Internal(anyhow::anyhow!(
-                "Brak odpowiedzi od bazy danych (Ping failed): {}",
+                "Brak odpowiedzi od bazy danych '{}' (Ping failed): {}",
+                db_set.name,
                 e
             ))
         })?;
 
     tracing::info!(
-        "🍃 Pomyślnie zainicjalizowano połączenie z MongoDB: {}",
-        db_set.name
+        "🍃 Pomyślnie zainicjalizowano połączenie z MongoDB: {} (Pool size: {})",
+        db_set.name,
+        db_set.pool_size
     );
 
     Ok(client.database(&db_set.name))

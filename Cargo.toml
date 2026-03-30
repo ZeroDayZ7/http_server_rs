@@ -41,3 +41,8 @@ aes-gcm = "0.10.3"
 argon2 = { version = "0.5.3", features = ["std"] }
 rand = "0.10"
 base64 = "0.22.1"
+
+[dev-dependencies]
+tokio = { version = "1.43", features = ["full"] }
+testcontainers = "0.27.2"
+testcontainers-modules = "0.15.0"

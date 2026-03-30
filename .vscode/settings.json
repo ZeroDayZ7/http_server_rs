@@ -5,7 +5,7 @@
     "**/Cargo.lock": true,
     "**/.git": true,
     // "**/.vscode": true,
-    "**/tests": true,
+    // "**/tests": true,
     "LICENSE": true,
     "logs": true,
     ".env.example": true

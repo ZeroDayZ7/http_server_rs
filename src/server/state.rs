@@ -39,7 +39,7 @@ impl AppState {
         let user_service = Arc::new(UserService::new(user_repo as Arc<dyn UserRepository>));
 
         let redis_manager = RedisManager::new(&settings).await?;
-        let redis_rate_limiter = Arc::new(RedisRateLimiter::new(redis_manager).await);
+        let redis_rate_limiter = Arc::new(RedisRateLimiter::new(Arc::new(redis_manager)).await);
 
         Ok(Self {
             settings,
