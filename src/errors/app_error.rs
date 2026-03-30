@@ -30,6 +30,18 @@ pub enum AppError {
     #[error("Błąd timeout")]
     TimeoutError,
 
+    #[error("Błąd konfiguracji: {0}")]
+    ConfigError(String),
+
+    #[error("Błąd serializacji/deserializacji: {0}")]
+    SerializationError(#[from] serde_json::Error),
+
+    #[error("Błąd środowiska wykonawczego: {0}")]
+    RuntimeError(String),
+
+    #[error("Błąd zewnętrznej usługi (HTTP): {0}")]
+    ExternalServiceError(String),
+
     #[error("Wystąpił nieoczekiwany błąd serwera")]
     Internal(#[from] anyhow::Error),
 }
@@ -51,8 +63,12 @@ impl AppError {
             Self::CryptoError(_) => "CRYPTO_FAILURE",
             Self::DatabaseError(_) => "DATABASE_ERROR",
             Self::RedisError(_) => "CACHE_ERROR",
-            Self::Internal(_) => "INTERNAL_SERVER_ERROR",
             Self::TimeoutError => "TIMEOUT_ERROR",
+            Self::ConfigError(_) => "CONFIG_INVALID",
+            Self::SerializationError(_) => "SERIALIZATION_FAILED",
+            Self::ExternalServiceError(_) => "EXTERNAL_SERVICE_UNAVAILABLE",
+            Self::RuntimeError(_) => "RUNTIME_ERROR",
+            Self::Internal(_) => "INTERNAL_SERVER_ERROR",
         }
     }
 }
@@ -67,12 +83,29 @@ impl IntoResponse for AppError {
             Self::NotFound(_) => StatusCode::NOT_FOUND,
             Self::ValidationError(_) => StatusCode::BAD_REQUEST,
             Self::CryptoError(_) => StatusCode::UNPROCESSABLE_ENTITY,
+
             Self::DatabaseError(err) => {
                 tracing::error!(target: "infra::db", %err, "MongoDB Error");
                 StatusCode::INTERNAL_SERVER_ERROR
             }
             Self::RedisError(err) => {
                 tracing::error!(target: "infra::redis", %err, "Redis Error");
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
+            Self::SerializationError(err) => {
+                tracing::warn!(%err, "JSON Serialization failed");
+                StatusCode::BAD_REQUEST
+            }
+            Self::ConfigError(err) => {
+                tracing::error!(%err, "Critical configuration error!");
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
+            Self::ExternalServiceError(err) => {
+                tracing::error!(%err, "External service call failed");
+                StatusCode::BAD_GATEWAY
+            }
+            Self::RuntimeError(err) => {
+                tracing::error!(%err, "Runtime execution error");
                 StatusCode::INTERNAL_SERVER_ERROR
             }
             Self::Internal(err) => {
@@ -86,9 +119,12 @@ impl IntoResponse for AppError {
             code,
             message: message.into(),
             details: match &self {
-                Self::ValidationError(d) | Self::NotFound(d) | Self::CryptoError(d) => {
-                    Some(d.clone())
-                }
+                Self::ValidationError(d)
+                | Self::NotFound(d)
+                | Self::CryptoError(d)
+                | Self::ConfigError(d)
+                | Self::RuntimeError(d)
+                | Self::ExternalServiceError(d) => Some(d.clone()),
                 _ => None,
             },
         });
@@ -96,7 +132,6 @@ impl IntoResponse for AppError {
         (status, body).into_response()
     }
 }
-
 impl From<mongodb::error::Error> for AppError {
     fn from(err: mongodb::error::Error) -> Self {
         Self::DatabaseError(err)
