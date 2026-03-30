@@ -1,7 +1,3 @@
-// Copyright 2026 ZeroDayZ7
-// Licensed under the Apache License, Version 2.0
-// See LICENSE file for details.
-
 use config::{Config, Environment, File};
 use dotenvy::dotenv;
 
@@ -19,11 +15,44 @@ pub use log::LogLevel;
 pub use settings::Settings;
 
 pub fn load() -> Result<Settings, config::ConfigError> {
+    let base_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("config")
+        .join("settings.toml");
+
+    load_from(base_path)
+}
+
+pub fn load_from<P: AsRef<std::path::Path>>(path: P) -> Result<Settings, config::ConfigError> {
     dotenv().ok();
 
     Config::builder()
-        .add_source(File::with_name("config/settings").required(true))
+        .add_source(File::from(path.as_ref().to_path_buf()).required(true))
         .add_source(Environment::default().separator("__"))
         .build()?
         .try_deserialize()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_load_config_file() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("config")
+            .join("settings.toml");
+
+        // To wypisze ścieżkę w konsoli, jeśli test zawiedzie (lub z flagą --nocapture)
+        println!("Szukam pliku w: {:?}", path.display());
+        println!("Czy plik istnieje fizycznie? {}", path.exists());
+
+        let result = load_from(&path);
+
+        assert!(
+            result.is_ok(),
+            "Nie udało się załadować konfiguracji z ścieżki: {:?}. Błąd: {:?}",
+            path,
+            result.err()
+        );
+    }
 }
