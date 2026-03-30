@@ -14,7 +14,7 @@ pub trait AuthRepository: Send + Sync {
         ttl: SessionTtl,
     ) -> AppResult<()>;
 
-    async fn get_session(&self, user_id: &UserId) -> AppResult<Option<SessionToken>>;
+    async fn get_session(&self, token: &SessionToken) -> AppResult<Option<UserId>>;
 
-    async fn delete_session(&self, user_id: &UserId) -> AppResult<()>;
+    async fn delete_session(&self, token: &SessionToken) -> AppResult<()>;
 }
