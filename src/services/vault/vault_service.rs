@@ -4,16 +4,18 @@ use crate::{
         VaultRepository,
         crypto::{CryptoService, EncryptedPayload},
         ports::decoder::Decoder,
+        ports::services::VaultServicePort,
         vault::DecryptedCV,
     },
     errors::{AppError, AppResult},
 };
+use async_trait::async_trait;
 use std::sync::Arc;
 
 pub struct VaultService {
     repo: Arc<dyn VaultRepository>,
     crypto: Arc<dyn CryptoService>,
-    decoder: Arc<dyn Decoder<DecryptedCV> + Send + Sync>,
+    decoder: Arc<dyn Decoder<DecryptedCV>>,
     #[allow(dead_code)]
     config: CryptoSettings,
 }
@@ -22,7 +24,7 @@ impl VaultService {
     pub fn new(
         repo: Arc<dyn VaultRepository>,
         crypto: Arc<dyn CryptoService>,
-        decoder: Arc<dyn Decoder<DecryptedCV> + Send + Sync>,
+        decoder: Arc<dyn Decoder<DecryptedCV>>,
         config: CryptoSettings,
     ) -> Self {
         Self {
@@ -32,8 +34,11 @@ impl VaultService {
             config,
         }
     }
+}
 
-    pub async fn unlock_cv(&self, id: &str, key: &str) -> AppResult<DecryptedCV> {
+#[async_trait]
+impl VaultServicePort for VaultService {
+    async fn unlock_cv(&self, id: &str, key: &str) -> AppResult<DecryptedCV> {
         let encrypted = self
             .repo
             .get_cv_by_id(id)

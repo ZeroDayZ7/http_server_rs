@@ -1,5 +1,7 @@
 // src/infrastructure/redis/keys.rs
 
+use crate::domain::value_objects::api_route::ApiRoute;
+use crate::domain::value_objects::client_ip::ClientIp;
 use crate::domain::value_objects::session_token::SessionToken;
 use crate::domain::value_objects::user_id::UserId;
 
@@ -14,10 +16,9 @@ impl RedisKey {
         Self(format!("user:profile:{}", id.to_string()))
     }
 
-    pub fn rate_limit(ip: &str, path: &str) -> Self {
-        Self(format!("rl:{}:{}", path, ip))
+    pub fn rate_limit(route: ApiRoute, ip: &ClientIp) -> Self {
+        Self(format!("rl:{}:{}", route.as_str(), ip.as_str()))
     }
-
     pub fn as_str(&self) -> &str {
         &self.0
     }

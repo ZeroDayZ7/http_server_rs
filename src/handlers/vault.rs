@@ -20,8 +20,10 @@ pub async fn unlock_cv(
 ) -> AppResult<Json<DecryptedCV>> {
     info!("Otrzymano żądanie odblokowania CV");
 
+    // POPRAWIONO: Wywołanie przez nową strukturę services
     let cv = state
-        .vault_service
+        .services
+        .vault
         .unlock_cv(&payload.cv_id.to_hex(), &payload.access_key)
         .await?;
 

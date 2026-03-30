@@ -1,5 +1,6 @@
 use crate::errors::{AppError, AppResult};
 use crate::infrastructure::redis::client::RedisManager;
+use crate::infrastructure::redis::keys::RedisKey;
 use fred::interfaces::LuaInterface;
 use std::sync::Arc;
 use tracing::warn;
@@ -35,32 +36,39 @@ impl RedisRateLimiter {
         Self { redis, script_hash }
     }
 
-    pub fn make_key(&self, prefix: &str, route: &str, ip: &str) -> String {
-        format!("rl:{}:{}:{}", prefix, route, ip)
-    }
-
     pub async fn check(
         &self,
-        key: &str,
+        key: &RedisKey,
         limit: u64,
         window_sec: u64,
     ) -> AppResult<RateLimitResult> {
         let client = self.redis.client();
+        let key_str = key.as_str();
+        let args = vec![window_sec.to_string()];
 
-        let result: i64 = match client
-            .evalsha::<i64, _, _, _>(&self.script_hash, vec![key], vec![window_sec.to_string()])
-            .await
-        {
-            Ok(res) => res,
-            Err(_) => client
-                .eval::<i64, _, _, _>(LUA_SCRIPT, vec![key], vec![window_sec.to_string()])
+        let result: i64 = if !self.script_hash.is_empty() {
+            match client
+                .evalsha::<i64, _, _, _>(&self.script_hash, vec![key_str], args.clone())
                 .await
-                .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis Eval Error: {}", e)))?,
+            {
+                Ok(res) => res,
+                Err(_) => self.fallback_eval(key_str, args).await?,
+            }
+        } else {
+            self.fallback_eval(key_str, args).await?
         };
 
         Ok(RateLimitResult {
             allowed: result as u64 <= limit,
             current: result as u64,
         })
+    }
+
+    async fn fallback_eval(&self, key: &str, args: Vec<String>) -> AppResult<i64> {
+        self.redis
+            .client()
+            .eval::<i64, _, _, _>(LUA_SCRIPT, vec![key], args)
+            .await
+            .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis Eval Error: {}", e)))
     }
 }
