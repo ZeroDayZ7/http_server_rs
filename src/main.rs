@@ -36,6 +36,7 @@ async fn run() -> anyhow::Result<()> {
     let state = match AppState::new(settings.clone()).await {
         Ok(s) => s,
         Err(e) => {
+            eprintln!("❌ KRYTYCZNY BŁĄD DB/REDIS: {:?}", e);
             error!(error = ?e, "❌ Krytyczny błąd inicjalizacji AppState");
             std::process::exit(1);
         }

@@ -1,5 +1,7 @@
-use crate::domain::auth::models::{SessionToken, SessionTtl, UserId};
 use crate::domain::auth::repository::AuthRepository;
+use crate::domain::value_objects::session_token::SessionToken;
+use crate::domain::value_objects::session_ttl::SessionTtl;
+use crate::domain::value_objects::user_id::UserId;
 use crate::errors::AppResult;
 use crate::infrastructure::redis::client::RedisManager;
 use crate::infrastructure::redis::keys::RedisKeys;
@@ -27,7 +29,7 @@ impl AuthRepository for RedisAuthRepository {
         let key = RedisKeys::session(token.as_str());
 
         self.redis
-            .set_ex(&key, &user_id.to_string(), ttl.as_u64())
+            .set_ex(&key, &user_id.to_string(), ttl.as_secs())
             .await
     }
 

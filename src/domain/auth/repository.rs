@@ -1,7 +1,10 @@
 // src/domain/auth/repository.rs
-use super::models::{SessionToken, SessionTtl, UserId};
+use crate::domain::value_objects::session_token::SessionToken;
+use crate::domain::value_objects::session_ttl::SessionTtl;
+use crate::domain::value_objects::user_id::UserId;
 use crate::errors::AppResult;
 use async_trait::async_trait;
+
 #[async_trait]
 pub trait AuthRepository: Send + Sync {
     async fn store_session(
