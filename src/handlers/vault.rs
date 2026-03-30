@@ -5,7 +5,7 @@ use crate::server::state::AppState;
 use axum::{Json, extract::State};
 use mongodb::bson::oid::ObjectId;
 use serde::Deserialize;
-use tracing::{info, instrument};
+use tracing::instrument;
 
 #[derive(Deserialize)]
 pub struct UnlockRequest {
@@ -13,18 +13,19 @@ pub struct UnlockRequest {
     pub access_key: String,
 }
 
-#[instrument(skip(state, payload), fields(cv_id = %payload.cv_id))]
+#[instrument(
+    skip(state, payload),
+    fields(cv_id = %payload.cv_id),
+    err
+)]
 pub async fn unlock_cv(
     State(state): State<AppState>,
     Json(payload): Json<UnlockRequest>,
 ) -> AppResult<Json<DecryptedCV>> {
-    info!("Otrzymano żądanie odblokowania CV");
-
-    // POPRAWIONO: Wywołanie przez nową strukturę services
     let cv = state
-        .services
-        .vault
-        .unlock_cv(&payload.cv_id.to_hex(), &payload.access_key)
+        .use_cases
+        .unlock_cv
+        .execute(&payload.cv_id.to_hex(), &payload.access_key)
         .await?;
 
     Ok(Json(cv))

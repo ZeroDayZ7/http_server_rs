@@ -3,6 +3,7 @@
 // See LICENSE file for details.
 // lib.rs
 
+pub mod application;
 pub mod config;
 pub mod domain;
 pub mod errors;
