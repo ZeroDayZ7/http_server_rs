@@ -1,5 +1,4 @@
-use std::sync::Arc;
-
+use crate::config::crypto::CryptoSettings;
 use crate::{
     domain::{
         VaultRepository,
@@ -9,11 +8,14 @@ use crate::{
     },
     errors::{AppError, AppResult},
 };
+use std::sync::Arc;
 
 pub struct VaultService {
     repo: Arc<dyn VaultRepository>,
     crypto: Arc<dyn CryptoService>,
     decoder: Arc<dyn Decoder<DecryptedCV> + Send + Sync>,
+    #[allow(dead_code)]
+    config: CryptoSettings,
 }
 
 impl VaultService {
@@ -21,11 +23,13 @@ impl VaultService {
         repo: Arc<dyn VaultRepository>,
         crypto: Arc<dyn CryptoService>,
         decoder: Arc<dyn Decoder<DecryptedCV> + Send + Sync>,
+        config: CryptoSettings,
     ) -> Self {
         Self {
             repo,
             crypto,
             decoder,
+            config,
         }
     }
 

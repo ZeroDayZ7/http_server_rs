@@ -12,8 +12,10 @@ pub mod crypto;
 pub mod rate_limit;
 
 pub use cors::HttpMethod;
+pub use database::DatabaseConfig;
 pub use log::LogConfig;
 pub use log::LogLevel;
+pub use redis::RedisConfig;
 pub use settings::Settings;
 
 pub fn load() -> Result<Settings, config::ConfigError> {

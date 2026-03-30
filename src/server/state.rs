@@ -1,6 +1,4 @@
 use crate::config::Settings;
-use crate::domain::ports::decoder::Decoder;
-use crate::domain::{UserRepository, VaultRepository};
 use crate::errors::AppResult;
 use crate::infrastructure::crypto::aes_service::AesCryptoService;
 use crate::infrastructure::redis::client::RedisManager;
@@ -21,25 +19,30 @@ pub struct AppState {
 
 impl AppState {
     pub async fn new(settings: Arc<Settings>) -> AppResult<Self> {
-        let mongo_db = crate::infrastructure::database::init_mongo(&settings).await?;
+        // 1. DB: Przekazujemy tylko fragment .database
+        let mongo_db = crate::infrastructure::database::init_mongo(&settings.database).await?;
         let db_pool = Arc::new(mongo_db);
 
+        // 2. Repozytoria
         let vault_repo = Arc::new(MongoVaultRepository::new(Arc::clone(&db_pool)));
         let user_repo = Arc::new(MongoUserRepository::new(Arc::clone(&db_pool)));
 
+        // 3. Infrastruktura i Serwisy pomocnicze
         let crypto_service = Arc::new(AesCryptoService::new(settings.crypto.clone()));
         let decoder = Arc::new(JsonDecoder);
 
+        // 4. Redis: Przekazujemy tylko fragment .redis (zakładając zmianę w RedisManager)
+        let redis_manager = RedisManager::new(&settings.redis).await?;
+        let redis_rate_limiter = Arc::new(RedisRateLimiter::new(Arc::new(redis_manager)).await);
+
         let vault_service = Arc::new(VaultService::new(
-            vault_repo as Arc<dyn VaultRepository>,
+            vault_repo,
             crypto_service,
-            decoder as Arc<dyn Decoder<crate::domain::vault::DecryptedCV> + Send + Sync>,
+            decoder,
+            settings.crypto.clone(),
         ));
 
-        let user_service = Arc::new(UserService::new(user_repo as Arc<dyn UserRepository>));
-
-        let redis_manager = RedisManager::new(&settings).await?;
-        let redis_rate_limiter = Arc::new(RedisRateLimiter::new(Arc::new(redis_manager)).await);
+        let user_service = Arc::new(UserService::new(user_repo));
 
         Ok(Self {
             settings,

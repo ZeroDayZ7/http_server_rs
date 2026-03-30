@@ -1,4 +1,4 @@
-use crate::config::Settings as AppSettings;
+use crate::config::RedisConfig;
 use crate::errors::{AppError, AppResult};
 use fred::prelude::*;
 use std::time::Duration;
@@ -8,8 +8,9 @@ pub struct RedisManager {
 }
 
 impl RedisManager {
-    pub async fn new(settings: &AppSettings) -> AppResult<Self> {
-        let db_index: u8 = settings.redis.db.try_into().map_err(|_| {
+    pub async fn new(config: &RedisConfig) -> AppResult<Self> {
+        // Zmieniono: settings.redis.db -> config.db
+        let db_index: u8 = config.db.try_into().map_err(|_| {
             AppError::ValidationError(
                 "Index bazy danych Redis musi mieścić się w zakresie 0-255".into(),
             )
@@ -17,26 +18,32 @@ impl RedisManager {
 
         let reconnect_policy = ReconnectPolicy::new_exponential(0, 100, 5000, 2);
 
-        let config = Config {
+        let redis_config = Config {
             server: ServerConfig::Centralized {
-                server: Server::new(&settings.redis.host, settings.redis.port),
+                // Zmieniono: settings.redis -> config
+                server: Server::new(&config.host, config.port),
             },
-            password: settings.redis.password.clone(),
+            password: config.password.clone(),
             database: Some(db_index),
             ..Default::default()
         };
 
         let perf_config = PerformanceConfig::default();
 
-        let client = Client::new(config, Some(perf_config), None, Some(reconnect_policy));
+        let client = Client::new(
+            redis_config,
+            Some(perf_config),
+            None,
+            Some(reconnect_policy),
+        );
 
-        client.connect();
+        let _ = client.connect();
 
         match tokio::time::timeout(Duration::from_secs(5), client.wait_for_connect()).await {
             Ok(Ok(_)) => {
                 tracing::info!(
-                    host = %settings.redis.host,
-                    port = %settings.redis.port,
+                    host = %config.host,
+                    port = %config.port,
                     "🚀 Połączono z Redis"
                 );
                 Ok(Self { client })
