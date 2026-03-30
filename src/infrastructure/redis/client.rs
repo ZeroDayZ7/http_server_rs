@@ -47,11 +47,11 @@ impl RedisManager {
                 Ok(Self { client })
             }
             Ok(Err(e)) => Err(AppError::from(e)),
-            Err(_) => Err(AppError::Internal(anyhow::anyhow!(
-                "Timeout podczas inicjalizacji połączenia z Redis"
-            ))),
+            Err(_) => Err(AppError::ConfigError(
+                "Timeout podczas inicjalizacji połączenia z Redis".into(),
+            )),
         }
-    }
+    } // <--- To jest to brakujące zamknięcie funkcji new()!
 
     pub async fn set_ex(&self, key: &str, value: &str, ttl_sec: u64) -> AppResult<()> {
         let expiration = Expiration::EX(
@@ -62,23 +62,21 @@ impl RedisManager {
 
         self.client
             .set::<(), _, _>(key, value, Some(expiration), None, false)
-            .await
-            .map_err(AppError::from)
+            .await?;
+
+        Ok(())
     }
 
     pub async fn get(&self, key: &str) -> AppResult<Option<String>> {
-        self.client
-            .get::<Option<String>, _>(key)
-            .await
-            .map_err(AppError::from)
+        Ok(self.client.get::<Option<String>, _>(key).await?)
     }
 
     pub async fn del(&self, key: &str) -> AppResult<()> {
-        self.client.del::<(), _>(key).await.map_err(AppError::from)
+        Ok(self.client.del::<(), _>(key).await?)
     }
 
     pub async fn ping(&self) -> AppResult<()> {
-        self.client.ping::<()>(None).await.map_err(AppError::from)
+        Ok(self.client.ping::<()>(None).await?)
     }
 
     pub fn client(&self) -> &Client {

@@ -1,4 +1,4 @@
-use crate::errors::{AppError, AppResult};
+use crate::errors::AppResult;
 use crate::infrastructure::redis::client::RedisManager;
 use crate::infrastructure::redis::keys::RedisKey;
 use fred::interfaces::LuaInterface;
@@ -65,10 +65,13 @@ impl RedisRateLimiter {
     }
 
     async fn fallback_eval(&self, key: &str, args: Vec<String>) -> AppResult<i64> {
-        self.redis
+        // To zadziała, bo fred::Error -> AppError::RedisError
+        let res = self
+            .redis
             .client()
             .eval::<i64, _, _, _>(LUA_SCRIPT, vec![key], args)
-            .await
-            .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis Eval Error: {}", e)))
+            .await?;
+
+        Ok(res)
     }
 }
