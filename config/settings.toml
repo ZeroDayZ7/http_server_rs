@@ -9,9 +9,16 @@ shutdown_timeout = 30
 level = "debug"
 
 [cors]
-allowed_origin = ["http://localhost:3000", "https://myapp.com", "https://admin.myapp.com"]
 allowed_methods = ["GET", "POST", "OPTIONS", "PATCH"]
 max_age = 3600
+
+[cors.allowed_origin]
+type = "List"
+value = [
+  "http://localhost:3000",
+  "https://myapp.com",
+  "https://admin.myapp.com"
+]
 
 [database]
 host = "127.0.0.1"

@@ -10,6 +10,7 @@ use tracing::{error, info};
 #[tokio::main]
 async fn main() {
     if let Err(e) = run().await {
+        eprintln!("❌ KRYTYCZNY BŁĄD DB/REDIS: {:?}", e);
         error!(error = %e, "❌ Fatal application error");
         std::process::exit(1);
     }
