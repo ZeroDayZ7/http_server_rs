@@ -2,6 +2,7 @@ use config::{Config, Environment, File};
 use dotenvy::dotenv;
 
 mod cors;
+pub mod crypto;
 mod database;
 mod log;
 mod rate_limit;

@@ -2,23 +2,43 @@ use aes_gcm::{
     Aes256Gcm, Nonce,
     aead::{Aead, KeyInit},
 };
-use argon2::Argon2;
-use base64::{Engine, engine::general_purpose::STANDARD};
+use argon2::{Algorithm, Argon2, Params, Version};
+// base64 nie jest już potrzebne w tym pliku, bo operujemy na bajtach!
 use rand::random;
 
 use crate::{
+    config::crypto::CryptoSettings,
     domain::crypto::{CryptoService, EncryptedPayload},
     errors::{AppError, AppResult},
 };
 
-pub struct AesCryptoService;
+pub struct AesCryptoService {
+    settings: CryptoSettings,
+}
 
 impl AesCryptoService {
-    fn derive_key(password: &str, salt: &[u8]) -> AppResult<[u8; 32]> {
+    pub fn new(settings: CryptoSettings) -> Self {
+        Self { settings }
+    }
+
+    fn derive_key(&self, password: &str, salt: &[u8]) -> AppResult<[u8; 32]> {
         let mut key = [0u8; 32];
-        Argon2::default()
-            .hash_password_into(password.as_bytes(), salt, &mut key)
+        let password_with_pepper = format!("{}{}", password, self.settings.secret_key);
+
+        let params = Params::new(
+            self.settings.argon2_m_cost,
+            self.settings.argon2_t_cost,
+            self.settings.argon2_p_cost,
+            None,
+        )
+        .map_err(|e| AppError::CryptoError(format!("Argon2 params error: {}", e)))?;
+
+        let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
+
+        argon2
+            .hash_password_into(password_with_pepper.as_bytes(), salt, &mut key)
             .map_err(|e| AppError::CryptoError(format!("Argon2 failure: {}", e)))?;
+
         Ok(key)
     }
 }
@@ -28,44 +48,33 @@ impl CryptoService for AesCryptoService {
         let salt_raw: [u8; 16] = random();
         let nonce_raw: [u8; 12] = random();
 
-        let key = Self::derive_key(password, &salt_raw)?;
+        let key = self.derive_key(password, &salt_raw)?;
         let cipher = Aes256Gcm::new_from_slice(&key)
-            .map_err(|e| AppError::CryptoError(format!("Cipher init error: {}", e)))?;
-
-        let nonce = Nonce::from_slice(&nonce_raw);
+            .map_err(|e| AppError::CryptoError(format!("Cipher init: {}", e)))?;
 
         let ciphertext = cipher
-            .encrypt(nonce, data)
-            .map_err(|e| AppError::CryptoError(format!("Encryption failure: {}", e)))?;
+            .encrypt(Nonce::from_slice(&nonce_raw), data)
+            .map_err(|e| AppError::CryptoError(format!("Encrypt failure: {}", e)))?;
 
         Ok(EncryptedPayload {
-            ciphertext: STANDARD.encode(ciphertext),
-            salt: STANDARD.encode(salt_raw),
-            nonce: STANDARD.encode(nonce_raw),
+            ciphertext,
+            salt: salt_raw.to_vec(),
+            nonce: nonce_raw.to_vec(),
         })
     }
 
     fn decrypt(&self, payload: &EncryptedPayload, password: &str) -> AppResult<Vec<u8>> {
-        let ciphertext = STANDARD
-            .decode(&payload.ciphertext)
-            .map_err(|_| AppError::ValidationError("Invalid ciphertext base64".into()))?;
+        // ZMIANA: Nie używamy STANDARD.decode, bo payload.salt i reszta to już Vec<u8>
+        let key = self.derive_key(password, &payload.salt)?;
 
-        let salt_raw = STANDARD
-            .decode(&payload.salt)
-            .map_err(|_| AppError::ValidationError("Invalid salt base64".into()))?;
-
-        let nonce_raw = STANDARD
-            .decode(&payload.nonce)
-            .map_err(|_| AppError::ValidationError("Invalid nonce base64".into()))?;
-
-        let key = Self::derive_key(password, &salt_raw)?;
         let cipher = Aes256Gcm::new_from_slice(&key)
             .map_err(|e| AppError::CryptoError(format!("Cipher init error: {}", e)))?;
 
-        let nonce = Nonce::from_slice(&nonce_raw);
+        // Używamy danych bezpośrednio z payloadu
+        let nonce = Nonce::from_slice(&payload.nonce);
 
         let decrypted = cipher
-            .decrypt(nonce, ciphertext.as_ref())
+            .decrypt(nonce, payload.ciphertext.as_ref())
             .map_err(|_| AppError::CryptoError("Invalid key or corrupted data".into()))?;
 
         Ok(decrypted)

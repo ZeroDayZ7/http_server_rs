@@ -27,7 +27,7 @@ impl AppState {
         let vault_repo = Arc::new(MongoVaultRepository::new(Arc::clone(&db_pool)));
         let user_repo = Arc::new(MongoUserRepository::new(Arc::clone(&db_pool)));
 
-        let crypto_service = Arc::new(AesCryptoService);
+        let crypto_service = Arc::new(AesCryptoService::new(settings.crypto.clone()));
         let decoder = Arc::new(JsonDecoder);
 
         let vault_service = Arc::new(VaultService::new(

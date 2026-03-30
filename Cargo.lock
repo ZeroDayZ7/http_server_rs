@@ -1377,6 +1377,7 @@ dependencies = [
  "mongodb",
  "rand 0.10.0",
  "serde",
+ "serde_bytes",
  "serde_json",
  "testcontainers",
  "testcontainers-modules",

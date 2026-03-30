@@ -32,3 +32,17 @@ health_per_second = 360
 health_burst = 3
 auth_per_second = 12
 auth_burst = 2
+
+[crypto]
+# Główny sekret serwera (pepper) - ZMIEŃ TO NA PRODUKCJI!
+secret_key = "d7a8f9e2b4c1d5e8a9b0c3d2e1f4a5b6"
+token_expiry_hours = 24
+
+# Parametry Argon2id (bezpieczny standard)
+argon2_m_cost = 19456  # 19 MiB RAM
+argon2_t_cost = 2      # Liczba iteracji
+argon2_p_cost = 1      # Liczba wątków (parallelism)
+
+# Długość generowanych losowych bajtów
+salt_len = 16
+nonce_len = 12

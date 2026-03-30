@@ -2,9 +2,9 @@
 use crate::errors::AppResult;
 
 pub struct EncryptedPayload {
-    pub ciphertext: String,
-    pub salt: String,
-    pub nonce: String,
+    pub ciphertext: Vec<u8>,
+    pub salt: Vec<u8>,
+    pub nonce: Vec<u8>,
 }
 
 pub trait CryptoService: Send + Sync {
