@@ -12,8 +12,7 @@ pub enum HttpMethod {
 }
 
 #[derive(Debug, Deserialize, Clone, PartialEq, Eq)]
-#[serde(rename_all = "lowercase")]
-#[serde(untagged)]
+#[serde(tag = "type", content = "value")]
 pub enum AllowedOrigins {
     Any,
     Single(String),
@@ -60,17 +59,22 @@ mod tests {
     fn test_cors_config_single_origin() {
         let json = r#"
         {
-            "allowed_origin": "http://localhost:3000",
+            "allowed_origin": {
+                "type": "Single",
+                "value": "http://localhost:3000"
+            },
             "allowed_methods": ["GET", "POST"],
             "max_age": 3600
         }
         "#;
 
         let config: CorsConfig = serde_json::from_str(json).unwrap();
+
         assert_eq!(
             config.allowed_origin,
             AllowedOrigins::Single("http://localhost:3000".to_string())
         );
+
         assert!(config.allowed_origin.is_allowed("http://localhost:3000"));
     }
 
@@ -78,13 +82,17 @@ mod tests {
     fn test_cors_config_list_origin() {
         let json = r#"
         {
-            "allowed_origin": ["http://localhost:3000", "https://app.com"],
+            "allowed_origin": {
+                "type": "List",
+                "value": ["http://localhost:3000", "https://app.com"]
+            },
             "allowed_methods": ["GET"],
             "max_age": 60
         }
         "#;
 
         let config: CorsConfig = serde_json::from_str(json).unwrap();
+
         assert!(config.allowed_origin.is_allowed("https://app.com"));
         assert!(!config.allowed_origin.is_allowed("https://evil.com"));
     }
@@ -93,13 +101,16 @@ mod tests {
     fn test_cors_config_any_origin() {
         let json = r#"
         {
-            "allowed_origin": "any",
+            "allowed_origin": {
+                "type": "Any"
+            },
             "allowed_methods": ["OPTIONS"],
             "max_age": 0
         }
         "#;
 
         let config: CorsConfig = serde_json::from_str(json).unwrap();
+
         assert_eq!(config.allowed_origin, AllowedOrigins::Any);
         assert!(config.allowed_origin.is_allowed("cokolwiek"));
     }
