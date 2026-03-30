@@ -13,15 +13,14 @@ pub enum HttpMethod {
 
 #[derive(Debug, Deserialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
-#[serde(untagged)] // Kluczowe dla obsługi String vs Vec vs "any"
+#[serde(untagged)]
 pub enum AllowedOrigins {
-    Any,               // Dopasuje "any" lub "*"
-    Single(String),    // Dopasuje pojedynczy tekst "http://..."
-    List(Vec<String>), // Dopasuje listę ["http://a", "http://b"]
+    Any,
+    Single(String),
+    List(Vec<String>),
 }
 
 impl AllowedOrigins {
-    /// Sprawdza, czy dany origin jest dozwolony
     pub fn is_allowed(&self, origin: &str) -> bool {
         match self {
             Self::Any => true,
@@ -30,7 +29,6 @@ impl AllowedOrigins {
         }
     }
 
-    /// Pomocnicze dla Actix/Axum/Tower - zwraca listę stringów
     pub fn to_vec(&self) -> Vec<String> {
         match self {
             Self::Any => vec!["*".to_string()],

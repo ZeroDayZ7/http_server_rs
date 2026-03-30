@@ -77,6 +77,10 @@ impl RedisManager {
         self.client.del::<(), _>(key).await.map_err(AppError::from)
     }
 
+    pub async fn ping(&self) -> AppResult<()> {
+        self.client.ping::<()>(None).await.map_err(AppError::from)
+    }
+
     pub fn client(&self) -> &Client {
         &self.client
     }

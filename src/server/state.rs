@@ -1,3 +1,4 @@
+// src/server/state.rs
 use crate::config::Settings;
 use crate::errors::AppResult;
 use crate::infrastructure::crypto::aes_service::AesCryptoService;
@@ -7,6 +8,7 @@ use crate::infrastructure::serialization::JsonDecoder;
 use crate::infrastructure::{MongoUserRepository, MongoVaultRepository};
 use crate::services::user_service::UserService;
 use crate::services::vault::vault_service::VaultService;
+use mongodb::Database;
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -15,13 +17,16 @@ pub struct AppState {
     pub vault_service: Arc<VaultService>,
     pub user_service: Arc<UserService>,
     pub redis_rate_limiter: Arc<RedisRateLimiter>,
+
+    pub db: Database,
+    pub redis_manager: Arc<RedisManager>,
 }
 
 impl AppState {
     pub async fn new(settings: Arc<Settings>) -> AppResult<Self> {
         // 1. DB: Przekazujemy tylko fragment .database
         let mongo_db = crate::infrastructure::database::init_mongo(&settings.database).await?;
-        let db_pool = Arc::new(mongo_db);
+        let db_pool = Arc::new(mongo_db.clone());
 
         // 2. Repozytoria
         let vault_repo = Arc::new(MongoVaultRepository::new(Arc::clone(&db_pool)));
@@ -32,8 +37,8 @@ impl AppState {
         let decoder = Arc::new(JsonDecoder);
 
         // 4. Redis: Przekazujemy tylko fragment .redis (zakładając zmianę w RedisManager)
-        let redis_manager = RedisManager::new(&settings.redis).await?;
-        let redis_rate_limiter = Arc::new(RedisRateLimiter::new(Arc::new(redis_manager)).await);
+        let redis_manager = Arc::new(RedisManager::new(&settings.redis).await?);
+        let redis_rate_limiter = Arc::new(RedisRateLimiter::new(Arc::clone(&redis_manager)).await);
 
         let vault_service = Arc::new(VaultService::new(
             vault_repo,
@@ -49,6 +54,9 @@ impl AppState {
             vault_service,
             user_service,
             redis_rate_limiter,
+
+            db: mongo_db,
+            redis_manager,
         })
     }
 }
