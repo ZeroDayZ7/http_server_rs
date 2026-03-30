@@ -1,7 +1,11 @@
 // src/infrastructure/mongodb.rs
 use crate::config::Settings;
 use crate::errors::{AppError, AppResult};
-use mongodb::{Client, Database, options::ClientOptions};
+use mongodb::{
+    Client, Database,
+    options::{ClientOptions, ServerApi, ServerApiVersion},
+};
+use std::time::Duration;
 
 pub async fn init_mongo(settings: &Settings) -> AppResult<Database> {
     let db_set = &settings.database;
@@ -30,6 +34,11 @@ pub async fn init_mongo(settings: &Settings) -> AppResult<Database> {
         .map_err(|e| AppError::ValidationError(format!("Błędny format URI MongoDB: {}", e)))?;
 
     client_options.app_name = Some("http_server_rs".to_string());
+
+    client_options.connect_timeout = Some(Duration::from_secs(5));
+    client_options.server_selection_timeout = Some(Duration::from_secs(5));
+
+    client_options.server_api = Some(ServerApi::builder().version(ServerApiVersion::V1).build());
 
     let client = Client::with_options(client_options).map_err(|e| {
         AppError::Internal(anyhow::anyhow!(

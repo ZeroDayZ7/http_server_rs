@@ -22,7 +22,7 @@
     "logs": true,
     ".env.example": true,
     "README.md": true,
-    "combined.txt": true
+    "**/combined.txt": true
   },
 
   // === Rust / Cargo ===

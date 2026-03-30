@@ -27,7 +27,9 @@ pub enum AppError {
     #[error("Błąd usługi Redis")]
     RedisError(#[source] fred::error::Error),
 
-    // "Catch-all" dla błędów, których nie przewidzieliśmy
+    #[error("Błąd timeout")]
+    TimeoutError,
+
     #[error("Wystąpił nieoczekiwany błąd serwera")]
     Internal(#[from] anyhow::Error),
 }
@@ -41,7 +43,6 @@ struct ErrorResponse {
 }
 
 impl AppError {
-    // Mapowanie błędów na unikalne kody dla Front-endu
     fn error_code(&self) -> &'static str {
         match self {
             Self::Unauthorized => "AUTH_FAILED",
@@ -51,6 +52,7 @@ impl AppError {
             Self::DatabaseError(_) => "DATABASE_ERROR",
             Self::RedisError(_) => "CACHE_ERROR",
             Self::Internal(_) => "INTERNAL_SERVER_ERROR",
+            Self::TimeoutError => "TIMEOUT_ERROR",
         }
     }
 }
@@ -64,7 +66,7 @@ impl IntoResponse for AppError {
             Self::Unauthorized => StatusCode::UNAUTHORIZED,
             Self::NotFound(_) => StatusCode::NOT_FOUND,
             Self::ValidationError(_) => StatusCode::BAD_REQUEST,
-            Self::CryptoError(_) => StatusCode::UNPROCESSABLE_ENTITY, // 422 przy błędach deszyfracji
+            Self::CryptoError(_) => StatusCode::UNPROCESSABLE_ENTITY,
             Self::DatabaseError(err) => {
                 tracing::error!(target: "infra::db", %err, "MongoDB Error");
                 StatusCode::INTERNAL_SERVER_ERROR
@@ -77,13 +79,12 @@ impl IntoResponse for AppError {
                 tracing::error!(%err, "Unexpected Internal Error");
                 StatusCode::INTERNAL_SERVER_ERROR
             }
+            Self::TimeoutError => StatusCode::REQUEST_TIMEOUT,
         };
 
-        // W środowisku produkcyjnym nie chcemy wysyłać szczegółów błędów bazy do klienta
         let body = Json(ErrorResponse {
             code,
             message: message.into(),
-            // Szczegóły wysyłamy TYLKO przy błędach walidacji/not found
             details: match &self {
                 Self::ValidationError(d) | Self::NotFound(d) | Self::CryptoError(d) => {
                     Some(d.clone())
@@ -105,5 +106,11 @@ impl From<mongodb::error::Error> for AppError {
 impl From<fred::error::Error> for AppError {
     fn from(err: fred::error::Error) -> Self {
         Self::RedisError(err)
+    }
+}
+
+impl From<tokio::time::error::Elapsed> for AppError {
+    fn from(_: tokio::time::error::Elapsed) -> Self {
+        Self::TimeoutError
     }
 }
