@@ -1,4 +1,4 @@
-use crate::infrastructure::redis_rate_limiter::RedisRateLimiter;
+use crate::infrastructure::redis::rate_limiter::RedisRateLimiter;
 use axum::body::Body;
 use governor::middleware::StateInformationMiddleware;
 use std::sync::Arc;

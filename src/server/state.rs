@@ -1,16 +1,13 @@
 use crate::config::Settings;
 use crate::domain::{UserRepository, VaultRepository};
 use crate::errors::AppResult;
-
 use crate::infrastructure::crypto::aes_service::AesCryptoService;
-use crate::infrastructure::redis::RedisService;
-use crate::infrastructure::redis_rate_limiter::RedisRateLimiter;
+use crate::infrastructure::redis::client::RedisManager;
+use crate::infrastructure::redis::rate_limiter::RedisRateLimiter;
 use crate::infrastructure::{MongoUserRepository, MongoVaultRepository};
-
 use crate::services::user_service::UserService;
 use crate::services::vault::vault_decoder::JsonVaultDecoder;
 use crate::services::vault::vault_service::VaultService;
-
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -40,8 +37,8 @@ impl AppState {
 
         let user_service = Arc::new(UserService::new(user_repo as Arc<dyn UserRepository>));
 
-        let redis_service = Arc::new(RedisService::new(&settings).await?);
-        let redis_rate_limiter = Arc::new(RedisRateLimiter::new(redis_service).await);
+        let redis_manager = RedisManager::new(&settings).await?;
+        let redis_rate_limiter = Arc::new(RedisRateLimiter::new(redis_manager).await);
 
         Ok(Self {
             settings,
