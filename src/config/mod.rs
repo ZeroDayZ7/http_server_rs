@@ -2,13 +2,14 @@ use config::{Config, Environment, File};
 use dotenvy::dotenv;
 
 mod cors;
-pub mod crypto;
 mod database;
 mod log;
-mod rate_limit;
 mod redis;
 mod server;
 mod settings;
+
+pub mod crypto;
+pub mod rate_limit;
 
 pub use cors::HttpMethod;
 pub use log::LogConfig;

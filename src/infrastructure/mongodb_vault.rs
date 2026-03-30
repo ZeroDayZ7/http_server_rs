@@ -1,5 +1,6 @@
 use crate::domain::VaultRepository;
 use crate::domain::vault::EncryptedCV;
+use crate::errors::AppError;
 use crate::errors::AppResult;
 use async_trait::async_trait;
 use mongodb::{Database, bson::doc};
@@ -27,18 +28,11 @@ impl VaultRepository for MongoVaultRepository {
         let collection = self.db.collection::<EncryptedCV>(&self.collection_name);
         let filter = doc! { "id": id };
 
-        let mut attempts = 0;
+        let result = timeout(Duration::from_secs(5), collection.find_one(filter))
+            .await
+            .map_err(|_| AppError::TimeoutError)?
+            .map_err(AppError::DatabaseError)?;
 
-        loop {
-            attempts += 1;
-
-            let result = timeout(Duration::from_secs(3), collection.find_one(filter.clone())).await;
-
-            match result {
-                Ok(inner) => return Ok(inner?),
-                Err(_) if attempts < 2 => continue,
-                Err(e) => return Err(e.into()),
-            }
-        }
+        Ok(result)
     }
 }
