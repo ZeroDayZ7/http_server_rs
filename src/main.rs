@@ -35,7 +35,7 @@ async fn run() -> anyhow::Result<()> {
     // -------------------------
     let state = AppState::new(settings.clone())
         .await
-        .map_err(|e| anyhow::anyhow!("Krytyczny błąd inicjalizacji AppState (DB/REDIS): {}", e))?;
+        .map_err(|e| anyhow!("Krytyczny błąd inicjalizacji AppState: {}", e))?;
 
     info!("🧠 Application state initialized");
 
