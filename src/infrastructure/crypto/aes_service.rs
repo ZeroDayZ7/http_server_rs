@@ -1,10 +1,8 @@
 use aes_gcm::{
     Aes256Gcm, Nonce,
-    aead::{Aead, KeyInit},
+    aead::{Aead, KeyInit, OsRng, rand_core::RngCore},
 };
 use argon2::{Algorithm, Argon2, Params, Version};
-// base64 nie jest już potrzebne w tym pliku, bo operujemy na bajtach!
-use rand::random;
 
 use crate::{
     config::crypto::CryptoSettings,
@@ -31,13 +29,13 @@ impl AesCryptoService {
             self.settings.argon2_p_cost,
             None,
         )
-        .map_err(|e| AppError::CryptoError(format!("Argon2 params error: {}", e)))?;
+        .map_err(|e| AppError::CryptoError(format!("Argon2 params invalid: {e}")))?;
 
         let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
 
         argon2
             .hash_password_into(password_with_pepper.as_bytes(), salt, &mut key)
-            .map_err(|e| AppError::CryptoError(format!("Argon2 failure: {}", e)))?;
+            .map_err(|e| AppError::CryptoError(format!("Argon2 derivation failed: {e}")))?;
 
         Ok(key)
     }
@@ -45,48 +43,55 @@ impl AesCryptoService {
 
 impl CryptoService for AesCryptoService {
     fn encrypt(&self, data: &[u8], password: &str) -> AppResult<EncryptedPayload> {
-        let salt_raw: [u8; 16] = random();
-        let nonce_raw: [u8; 12] = random();
+        let mut salt = [0u8; 16];
+        let mut nonce_bytes = [0u8; 12];
 
-        let key = self.derive_key(password, &salt_raw)?;
+        let mut rng = OsRng;
+        rng.try_fill_bytes(&mut salt)
+            .map_err(|e| AppError::CryptoError(format!("RNG error: {e}")))?;
+
+        rng.fill_bytes(&mut nonce_bytes);
+
+        let key = self.derive_key(password, &salt)?;
+
         let cipher = Aes256Gcm::new_from_slice(&key)
-            .map_err(|e| AppError::CryptoError(format!("Cipher init: {}", e)))?;
+            .map_err(|e| AppError::CryptoError(format!("Cipher initialization error: {e}")))?;
+
+        let nonce = Nonce::from_slice(&nonce_bytes);
 
         let ciphertext = cipher
-            .encrypt(Nonce::from_slice(&nonce_raw), data)
-            .map_err(|e| AppError::CryptoError(format!("Encrypt failure: {}", e)))?;
+            .encrypt(nonce, data)
+            .map_err(|e| AppError::CryptoError(format!("Encryption failed: {e}")))?;
 
         Ok(EncryptedPayload {
             ciphertext,
-            salt: salt_raw.to_vec(),
-            nonce: nonce_raw.to_vec(),
+            salt: salt.to_vec(),
+            nonce: nonce_bytes.to_vec(),
         })
     }
 
     fn decrypt(&self, payload: &EncryptedPayload, password: &str) -> AppResult<Vec<u8>> {
-        if payload.salt.len() != 16 {
-            return Err(AppError::CryptoError(
-                "Nieprawidłowa długość soli (wymagane 16 bajtów)".into(),
-            ));
-        }
+        let salt: [u8; 16] =
+            payload.salt.as_slice().try_into().map_err(|_| {
+                AppError::CryptoError("Invalid salt length: expected 16 bytes".into())
+            })?;
 
-        if payload.nonce.len() != 12 {
-            return Err(AppError::CryptoError(
-                "Nieprawidłowa długość nonce (wymagane 12 bajtów)".into(),
-            ));
-        }
+        let nonce_raw: [u8; 12] =
+            payload.nonce.as_slice().try_into().map_err(|_| {
+                AppError::CryptoError("Invalid nonce length: expected 12 bytes".into())
+            })?;
 
-        let key = self.derive_key(password, &payload.salt)?;
+        let key = self.derive_key(password, &salt)?;
 
         let cipher = Aes256Gcm::new_from_slice(&key)
-            .map_err(|e| AppError::CryptoError(format!("Błąd inicjalizacji szyfru: {}", e)))?;
+            .map_err(|e| AppError::CryptoError(format!("Cipher initialization error: {e}")))?;
 
-        let nonce = Nonce::from_slice(&payload.nonce);
+        let nonce = Nonce::from_slice(&nonce_raw);
 
         let decrypted = cipher
             .decrypt(nonce, payload.ciphertext.as_ref())
             .map_err(|_| {
-                AppError::CryptoError("Błędny klucz lub uszkodzone dane (MAC mismatch)".into())
+                AppError::CryptoError("Decryption failed: check password or data integrity".into())
             })?;
 
         Ok(decrypted)
