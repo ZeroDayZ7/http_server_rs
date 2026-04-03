@@ -33,12 +33,12 @@ port = 6379
 db = 0
 
 [rate_limit]
-global_per_second = 3
-global_burst = 5
-health_per_second = 360
-health_burst = 3
-auth_per_second = 12
-auth_burst = 2
+global_per_second = 50
+global_burst = 100
+health_per_second = 50
+health_burst = 100
+auth_per_second = 50
+auth_burst = 100
 
 [crypto]
 # Główny sekret serwera (pepper) - ZMIEŃ TO NA PRODUKCJI!
