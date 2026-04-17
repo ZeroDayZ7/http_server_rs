@@ -32,7 +32,7 @@ pub async fn init_mongo(db_set: &DatabaseConfig) -> AppResult<Database> {
     let client = Client::with_options(client_options)?;
 
     client
-        .database("admin")
+        .database(&db_set.name)
         .run_command(doc! {"ping": 1})
         .await?;
 
