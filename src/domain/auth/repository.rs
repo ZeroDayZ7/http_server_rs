@@ -3,9 +3,8 @@ use crate::domain::value_objects::session_token::SessionToken;
 use crate::domain::value_objects::session_ttl::SessionTtl;
 use crate::domain::value_objects::user_id::UserId;
 use crate::errors::AppResult;
-use async_trait::async_trait;
 
-#[async_trait]
+#[allow(async_fn_in_trait)]
 pub trait AuthRepository: Send + Sync {
     async fn store_session(
         &self,

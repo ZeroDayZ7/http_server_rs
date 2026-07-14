@@ -7,8 +7,8 @@
     // "**/.vscode": true,
     // "**/tests": true,
     "LICENSE": true,
-    "logs": true,
-    ".env.example": true
+    "logs": true
+    // ".env.example": true
     // "README.md": true
     // "**/.env": true
   },
