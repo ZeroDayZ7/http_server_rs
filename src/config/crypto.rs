@@ -48,7 +48,4 @@ pub struct CryptoSettings {
     pub argon2_m_cost: u32,
     pub argon2_t_cost: u32,
     pub argon2_p_cost: u32,
-
-    pub salt_len: SaltLength,
-    pub nonce_len: NonceLength,
 }
