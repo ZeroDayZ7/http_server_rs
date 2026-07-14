@@ -42,7 +42,7 @@ impl RedisManager {
                 tracing::info!(
                     host = %config.host,
                     port = %config.port,
-                    "🚀 Połączono z Redis"
+                    "🚀 Connected to Redis"
                 );
                 Ok(Self { client })
             }

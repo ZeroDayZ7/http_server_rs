@@ -19,12 +19,17 @@ services:
       - "27017:27017"
 
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${DATABASE__USER:-app_admin}
-      MONGO_INITDB_ROOT_PASSWORD: ${DATABASE__PASSWORD:-change_me}
-      MONGO_INITDB_DATABASE: ${DATABASE__NAME:-zero_day_db}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${DATABASE__NAME}
+
+      MONGO_APP_USER: ${DATABASE__USER}
+      MONGO_APP_PASSWORD: ${DATABASE__PASSWORD}
+      MONGO_APP_DATABASE: ${DATABASE__NAME}
 
     volumes:
       - mongo_data:/data/db
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d:ro
 
     healthcheck:
       <<: *common-healthcheck
@@ -33,9 +38,9 @@ services:
           "CMD",
           "mongosh",
           "--username",
-          "${DATABASE__USER:-app_admin}",
+          "${MONGO_ROOT_USER}",
           "--password",
-          "${DATABASE__PASSWORD:-change_me}",
+          "${MONGO_ROOT_PASSWORD}",
           "--authenticationDatabase",
           "admin",
           "--eval",

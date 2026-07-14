@@ -1,9 +1,17 @@
 use serde::{Deserialize, Deserializer};
+use std::ops::Deref;
 
 // --- TYPY DEDYKOWANE (NewTypes) ---
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SaltLength(pub usize);
+
+impl Deref for SaltLength {
+    type Target = usize;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 impl<'de> Deserialize<'de> for SaltLength {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -11,7 +19,7 @@ impl<'de> Deserialize<'de> for SaltLength {
         D: Deserializer<'de>,
     {
         let val = usize::deserialize(deserializer)?;
-        if val < 8 || val > 64 {
+        if !(8..=64).contains(&val) {
             return Err(serde::de::Error::custom(
                 "salt_len must be between 8 and 64 bytes",
             ));
@@ -20,8 +28,15 @@ impl<'de> Deserialize<'de> for SaltLength {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct NonceLength(pub usize);
+
+impl Deref for NonceLength {
+    type Target = usize;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 impl<'de> Deserialize<'de> for NonceLength {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>

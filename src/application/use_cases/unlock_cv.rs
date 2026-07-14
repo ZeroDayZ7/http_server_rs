@@ -1,5 +1,8 @@
-use std::sync::Arc;
+// Copyright 2026 ZeroDayZ7
+// Licensed under the Apache License, Version 2.0
+// See LICENSE file for details.
 
+use std::sync::Arc;
 use crate::{
     domain::{
         VaultRepository,
@@ -10,17 +13,27 @@ use crate::{
     errors::{AppError, AppResult},
 };
 
-pub struct UnlockCvUseCase {
-    repo: Arc<dyn VaultRepository>,
-    crypto: Arc<dyn CryptoService>,
-    decoder: Arc<dyn Decoder<DecryptedCV>>,
+pub struct UnlockCvUseCase<R, C, D>
+where
+    R: VaultRepository,
+    C: CryptoService,
+    D: Decoder<DecryptedCV>,
+{
+    repo: Arc<R>,
+    crypto: Arc<C>,
+    decoder: Arc<D>,
 }
 
-impl UnlockCvUseCase {
+impl<R, C, D> UnlockCvUseCase<R, C, D>
+where
+    R: VaultRepository,
+    C: CryptoService,
+    D: Decoder<DecryptedCV>,
+{
     pub fn new(
-        repo: Arc<dyn VaultRepository>,
-        crypto: Arc<dyn CryptoService>,
-        decoder: Arc<dyn Decoder<DecryptedCV>>,
+        repo: Arc<R>,
+        crypto: Arc<C>,
+        decoder: Arc<D>,
     ) -> Self {
         Self {
             repo,
@@ -30,24 +43,19 @@ impl UnlockCvUseCase {
     }
 
     pub async fn execute(&self, id: &str, key: &str) -> AppResult<DecryptedCV> {
-        // 1. Pobierz zaszyfrowane CV
         let encrypted = self
             .repo
             .get_cv_by_id(id)
             .await?
             .ok_or_else(|| AppError::NotFound(format!("CV {} not found", id)))?;
 
-        // 2. Zbuduj payload do decrypta
         let payload = EncryptedPayload {
             ciphertext: encrypted.data,
             salt: encrypted.salt,
             nonce: encrypted.nonce,
         };
 
-        // 3. Odszyfruj
         let decrypted_bytes = self.crypto.decrypt(&payload, key)?;
-
-        // 4. Zdekoduj JSON → domain
         let cv = self.decoder.decode(&decrypted_bytes)?;
 
         Ok(cv)

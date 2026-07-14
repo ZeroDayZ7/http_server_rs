@@ -36,6 +36,6 @@ pub async fn init_mongo(db_set: &DatabaseConfig) -> AppResult<Database> {
         .run_command(doc! {"ping": 1})
         .await?;
 
-    tracing::info!("✅ Połączono z MongoDB");
+    tracing::info!("✅ Connected to MongoDB");
     Ok(client.database(&db_set.name))
 }
