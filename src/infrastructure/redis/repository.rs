@@ -6,7 +6,6 @@ use crate::domain::value_objects::user_id::UserId;
 use crate::errors::AppResult;
 use crate::infrastructure::redis::client::RedisManager;
 use crate::infrastructure::redis::keys::RedisKey;
-use async_trait::async_trait;
 use std::sync::Arc;
 
 pub struct RedisAuthRepository {
@@ -19,7 +18,6 @@ impl RedisAuthRepository {
     }
 }
 
-#[async_trait]
 impl AuthRepository for RedisAuthRepository {
     async fn store_session(
         &self,

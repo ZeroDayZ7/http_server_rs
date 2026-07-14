@@ -1,3 +1,7 @@
+// Copyright 2026 ZeroDayZ7
+// Licensed under the Apache License, Version 2.0
+// See LICENSE file for details.
+
 use aes_gcm::{
     Aes256Gcm, Nonce,
     aead::{Aead, KeyInit, OsRng, rand_core::RngCore},
@@ -9,6 +13,10 @@ use crate::{
     domain::crypto::{CryptoService, EncryptedPayload},
     errors::{AppError, AppResult},
 };
+
+// Stałe kryptograficzne zaszyte na sztywno
+const SALT_LEN: usize = 16;  // 128-bit salt (bezpieczne dla Argon2id)
+const NONCE_LEN: usize = 12; // 96-bit nonce (standard dla AES-256-GCM)
 
 pub struct AesCryptoService {
     settings: CryptoSettings,
@@ -43,14 +51,15 @@ impl AesCryptoService {
 
 impl CryptoService for AesCryptoService {
     fn encrypt(&self, data: &[u8], password: &str) -> AppResult<EncryptedPayload> {
-        let mut salt = [0u8; 16];
-        let mut nonce_bytes = [0u8; 12];
+        let mut salt = vec![0u8; SALT_LEN];
+        let mut nonce_bytes = vec![0u8; NONCE_LEN];
 
         let mut rng = OsRng;
         rng.try_fill_bytes(&mut salt)
             .map_err(|e| AppError::CryptoError(format!("RNG error: {e}")))?;
 
-        rng.fill_bytes(&mut nonce_bytes);
+        rng.try_fill_bytes(&mut nonce_bytes)
+            .map_err(|e| AppError::CryptoError(format!("RNG error: {e}")))?;
 
         let key = self.derive_key(password, &salt)?;
 
@@ -65,28 +74,32 @@ impl CryptoService for AesCryptoService {
 
         Ok(EncryptedPayload {
             ciphertext,
-            salt: salt.to_vec(),
-            nonce: nonce_bytes.to_vec(),
+            salt,
+            nonce: nonce_bytes,
         })
     }
 
     fn decrypt(&self, payload: &EncryptedPayload, password: &str) -> AppResult<Vec<u8>> {
-        let salt: [u8; 16] =
-            payload.salt.as_slice().try_into().map_err(|_| {
-                AppError::CryptoError("Invalid salt length: expected 16 bytes".into())
-            })?;
+        if payload.salt.len() != SALT_LEN {
+            return Err(AppError::CryptoError(format!(
+                "Invalid salt length: expected {SALT_LEN} bytes, got {}",
+                payload.salt.len()
+            )));
+        }
 
-        let nonce_raw: [u8; 12] =
-            payload.nonce.as_slice().try_into().map_err(|_| {
-                AppError::CryptoError("Invalid nonce length: expected 12 bytes".into())
-            })?;
+        if payload.nonce.len() != NONCE_LEN {
+            return Err(AppError::CryptoError(format!(
+                "Invalid nonce length: expected {NONCE_LEN} bytes, got {}",
+                payload.nonce.len()
+            )));
+        }
 
-        let key = self.derive_key(password, &salt)?;
+        let key = self.derive_key(password, &payload.salt)?;
 
         let cipher = Aes256Gcm::new_from_slice(&key)
             .map_err(|e| AppError::CryptoError(format!("Cipher initialization error: {e}")))?;
 
-        let nonce = Nonce::from_slice(&nonce_raw);
+        let nonce = Nonce::from_slice(&payload.nonce);
 
         let decrypted = cipher
             .decrypt(nonce, payload.ciphertext.as_ref())

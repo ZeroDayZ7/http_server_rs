@@ -1,12 +1,16 @@
+// Copyright 2026 ZeroDayZ7
+// Licensed under the Apache License, Version 2.0
+// See LICENSE file for details.
+
 use crate::domain::VaultRepository;
 use crate::domain::vault::EncryptedCV;
 use crate::errors::AppError;
 use crate::errors::AppResult;
-use async_trait::async_trait;
 use mongodb::{Database, bson::doc};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::timeout;
+use async_trait::async_trait;
 
 pub struct MongoVaultRepository {
     db: Arc<Database>,

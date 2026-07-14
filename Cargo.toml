@@ -8,7 +8,7 @@ edition = "2024"
 axum = { version = "0.8", features = ["macros"] }
 tokio = { version = "1.43", features = ["macros", "rt-multi-thread", "signal", "time"] }
 
-# Redis Client (Fred) - NAPRAWIONE: zmieniony feature na tokio-spawn
+# Redis Client 
 fred = { version = "10.1.0", features = ["serde-json", "enable-rustls", "i-scripts"] }
 
 # Serialization

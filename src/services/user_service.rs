@@ -1,24 +1,27 @@
-// src/services/user_service.rs
+// Copyright 2026 ZeroDayZ7
+// Licensed under the Apache License, Version 2.0
+// See LICENSE file for details.
+
+use async_trait::async_trait;
 use crate::domain::UserRepository;
 use crate::domain::ports::services::UserServicePort;
 use crate::domain::user::User;
 use crate::errors::{AppError, AppResult};
-use async_trait::async_trait;
 use std::sync::Arc;
 use tracing::instrument;
 
-pub struct UserService {
-    repo: Arc<dyn UserRepository>,
+pub struct UserService<R: UserRepository> {
+    repo: Arc<R>,
 }
 
-impl UserService {
-    pub fn new(repo: Arc<dyn UserRepository>) -> Self {
+impl<R: UserRepository> UserService<R> {
+    pub fn new(repo: Arc<R>) -> Self {
         Self { repo }
     }
 }
 
 #[async_trait]
-impl UserServicePort for UserService {
+impl<R: UserRepository + Send + Sync> UserServicePort for UserService<R> {
     #[instrument(skip(self), fields(user_email = %email))]
     async fn get_user_by_email(&self, email: &str) -> AppResult<User> {
         self.repo

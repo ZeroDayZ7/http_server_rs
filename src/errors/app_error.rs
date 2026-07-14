@@ -43,7 +43,7 @@ pub enum AppError {
     ExternalServiceError(String),
 
     #[error("Wystąpił nieoczekiwany błąd serwera: {0}")]
-    Internal(String), // Zmienione z anyhow::Error na String
+    Internal(String),
 }
 
 #[derive(Serialize)]
