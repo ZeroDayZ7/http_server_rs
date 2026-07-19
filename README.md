@@ -28,6 +28,76 @@ This project demonstrates **enterprise-grade architecture** with strong separati
 
 ---
 
+## Quick Start & Environment Setup
+
+### 1. Configure Environment
+
+Create a `.env` file in the root directory and configure your application credentials:
+
+```env
+# Database Credentials (used by Rust App & MongoDB Init Script)
+DATABASE__USER=zero_day_app_user
+DATABASE__PASSWORD=bardzo_bezpieczne_haslo_aplikacji
+DATABASE__NAME=zero_day_db
+
+# Root Credentials (used only by MongoDB Container Setup)
+MONGO_ROOT_USER=app_admin
+MONGO_ROOT_PASSWORD=twoje_bezpieczne_haslo
+
+# Redis Config
+REDIS__PASSWORD=devpassword
+```
+
+### 2. Run Infrastructure (Docker)
+
+To spin up MongoDB (with automatic user creation) and Redis, run:
+
+```bash
+# Start containers in background
+docker compose up -d
+
+# (Optional) Verify that the dedicated application user has been created successfully
+docker exec -it zero_day_mongo mongosh -u app_admin -p twoje_bezpieczne_haslo --eval "db.getSiblingDB('zero_day_db').getUsers()"
+
+```
+
+### 3. Run the Rust Application
+
+Once the backing services are healthy, start the Axum API server using one of the following methods:
+
+#### Option A: Run via Cargo (CLI)
+
+```bash
+cargo run
+
+```
+
+#### Option B: Debug via VS Code (LLDB)
+
+If you are using Visual Studio Code with the **CodeLLDB** extension, you can debug the application directly.
+
+Create or update your `.vscode/launch.json` with the following configuration:
+
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Rust Server",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/target/debug/http_server_rs",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "stopOnEntry": false,
+      "preLaunchTask": "cargo build"
+    }
+  ]
+}
+```
+
+---
+
 ## API Endpoints
 
 - `GET /health` — healthcheck
@@ -57,17 +127,8 @@ src/
 ├── server/          # router, middleware, extractors, graceful shutdown
 ├── handlers/        # HTTP handlers (auth, vault, health)
 └── errors/          # centralized AppError + API error mapping
-````
 
----
-
-## Why this project matters
-
-* strong boundaries between layers,
-* production logging,
-* defensive error handling,
-* rate limiting that works both locally and in distributed environments,
-* crypto-ready domain logic.
+```
 
 ---
 

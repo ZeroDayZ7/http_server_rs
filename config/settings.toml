@@ -49,7 +49,3 @@ token_expiry_hours = 24
 argon2_m_cost = 19456  # 19 MiB RAM
 argon2_t_cost = 2      # Liczba iteracji
 argon2_p_cost = 1      # Liczba wątków (parallelism)
-
-# Długość generowanych losowych bajtów
-salt_len = 16
-nonce_len = 12

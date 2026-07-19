@@ -11,8 +11,12 @@ use crate::services::user_service::UserService;
 use mongodb::Database;
 use std::sync::Arc;
 
+// JsonDecoder nie przyjmuje argumentów generycznych na poziomie definicji struktury
+pub type ConcreteUnlockCvUseCase =
+    UnlockCvUseCase<MongoVaultRepository, AesCryptoService, JsonDecoder>;
+
 pub struct UseCases {
-    pub unlock_cv: Arc<UnlockCvUseCase>,
+    pub unlock_cv: Arc<ConcreteUnlockCvUseCase>,
 }
 
 #[derive(Clone)]

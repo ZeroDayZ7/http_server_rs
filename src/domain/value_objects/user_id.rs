@@ -1,32 +1,33 @@
+// src/domain/value_objects/user_id.rs
 use crate::errors::app_error::AppError;
-use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct UserId(ObjectId);
+pub struct UserId(String);
 
 impl UserId {
-    pub fn new(id: ObjectId) -> Self {
+    pub fn new(id: String) -> Self {
         Self(id)
     }
 
     pub fn parse(value: &str) -> Result<Self, AppError> {
-        ObjectId::parse_str(value)
-            .map(Self)
-            .map_err(|_| AppError::ValidationError(format!("Invalid UserId: {}", value)))
+        if value.trim().is_empty() {
+            return Err(AppError::ValidationError("UserId cannot be empty".into()));
+        }
+        Ok(Self(value.to_string()))
     }
 
-    pub fn as_inner(&self) -> &ObjectId {
+    pub fn as_inner(&self) -> &str {
         &self.0
     }
 
-    pub fn to_hex(&self) -> String {
-        self.0.to_hex()
+    pub fn into_inner(self) -> String {
+        self.0
     }
 }
 
 impl std::fmt::Display for UserId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0.to_hex())
+        write!(f, "{}", self.0)
     }
 }
